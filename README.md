@@ -13,6 +13,7 @@ UniApp/
 ├── subject.py        – Subject model (ID, mark, grade generation)
 ├── admin.py          – Admin model (student management operations)
 ├── database.py       – Data-access layer (students.data CRUD)
+├── populate_data.py  – Seed students.data with sample records
 ├── test_uniapp.py    – Automated test suite (39 tests)
 ├── students.data     – Persistent data file (auto-created on first run)
 └── README.md         – This file
@@ -29,6 +30,21 @@ UniApp/
 ---
 
 ## Running the Applications
+
+### Seeding sample data (optional)
+
+To try the system without manually registering accounts, seed `students.data`
+with valid sample records:
+
+```bash
+python populate_data.py              # 15 students (default), overwrites file
+python populate_data.py 30           # 30 students
+python populate_data.py 20 --append  # keep existing records, add 20 more
+python populate_data.py 10 --seed 42 # reproducible output
+```
+
+Every generated student has a valid email and password, 0–4 random subjects,
+and printable login credentials are shown for the first three records.
 
 ### CLIUniApp (Command-Line)
 
