@@ -30,7 +30,7 @@ class Student:
 
     MAX_SUBJECTS = 4
 
-    #email & password patterns
+    #email & password patterns    test12345678
 
     # firstname.lastname@university.com
     _EMAIL_PATTERN    = re.compile(r"^[a-zA-Z]+\.[a-zA-Z]+@university\.com$")
