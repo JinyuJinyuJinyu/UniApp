@@ -30,7 +30,7 @@ class Student:
 
     MAX_SUBJECTS = 4
 
-    # ── email & password patterns ─────────────────────────────────────────────
+    #email & password patterns
 
     # firstname.lastname@university.com
     _EMAIL_PATTERN    = re.compile(r"^[a-zA-Z]+\.[a-zA-Z]+@university\.com$")
@@ -53,14 +53,14 @@ class Student:
         self.password = password
         self.subjects = subjects if subjects is not None else []
 
-    # ── ID generation ─────────────────────────────────────────────────────────
+    #ID generation
 
     @staticmethod
     def _generate_student_id() -> str:
         """Generate a random 6-digit zero-padded student ID."""
         return str(random.randint(1, 999_999)).zfill(6)
 
-    # ── pattern validation ────────────────────────────────────────────────────
+    #pattern validation
 
     @classmethod
     def validate_email_pattern(cls, email: str) -> bool:
@@ -97,7 +97,7 @@ class Student:
         """
         return bool(cls._PASSWORD_PATTERN.match(password))
 
-    # ── credential checking ───────────────────────────────────────────────────
+    #credential checking
 
     def check_login_credential(self, email: str, password: str) -> bool:
         """
@@ -112,7 +112,7 @@ class Student:
             and self.password == password
         )
 
-    # ── enrolment operations ──────────────────────────────────────────────────
+    #enrolment operations
 
     def enrol(self) -> Subject | None:
         """
@@ -145,7 +145,7 @@ class Student:
         """Return the current list of enrolled Subject objects."""
         return list(self.subjects)
 
-    # ── account management ────────────────────────────────────────────────────
+    #account management
 
     def change_password(self, new_password: str) -> bool:
         """
@@ -158,7 +158,7 @@ class Student:
         self.password = new_password
         return True
 
-    # ── serialisation helpers ─────────────────────────────────────────────────
+    #serialisation helpers
 
     def to_string(self) -> str:
         """
@@ -189,7 +189,7 @@ class Student:
             subjects=subjects,
         )
 
-    # ── display helpers ───────────────────────────────────────────────────────
+    #display helpers
 
     def __str__(self) -> str:
         return (
