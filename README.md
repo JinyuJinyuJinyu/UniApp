@@ -1,210 +1,211 @@
 # CLIUniApp & GUIUniApp – University Enrolment System
-## Assessment 1 – Part 2 | University of Technology Sydney, FEIT
+
+**Assessment 1 – Part 2** | University of Technology Sydney, FEIT
+*Software Engineering Practice*
 
 ---
 
-## Project Structure
+## Architecture (MVC)
+
+This project follows the **Model–View–Controller** pattern recommended in
+Section 3 of the assignment brief:
 
 ```
 UniApp/
-├── CLIUniApp.py      – Command-line entry point
-├── GUIUniApp.py      – Graphical UI entry point
-├── student.py        – Student model (registration, pattern validation, enrolment)
-├── subject.py        – Subject model (ID, mark, grade generation)
-├── admin.py          – Admin model (student management operations)
-├── database.py       – Data-access layer (students.data CRUD)
-├── populate_data.py  – Seed students.data with sample records
-├── test_uniapp.py    – Automated test suite (39 tests)
-├── students.data     – Persistent data file (auto-created on first run)
-└── README.md         – This file
+│
+├── Models (pure data + rules — no I/O)
+│   ├── student.py         – Student: data, validation patterns, derived props
+│   ├── subject.py         – Subject: id/mark/grade auto-generation
+│   └── database.py        – Database: students.data persistence (JSON)
+│
+├── Controllers (services + system menus)
+│   ├── student_controller.py   – register, login, drives student subsystem menu
+│   ├── subject_controller.py   – enrol, remove, list, change password,
+│   │                              drives subject enrolment menu
+│   └── admin_controller.py     – view all, group, partition, remove, clear,
+│                                  drives admin subsystem menu
+│
+├── View
+│   └── cli_view.py        – banner, prompt, info/warn/error/success helpers
+│
+├── Entry points
+│   ├── CLIUniApp.py       – wires controllers, dispatches main menu
+│   └── GUIUniApp.py       – tkinter UI; uses controllers (no direct DB calls)
+│
+├── Helpers
+│   ├── populate_data.py   – seed students.data with sample students
+│   └── test_uniapp.py     – 33 tests covering models + controllers
+│
+└── README.md
 ```
+
+### Why two layers of methods on each Controller?
+
+Each controller exposes:
+
+| Layer | Methods | Used by |
+|---|---|---|
+| **Service** (pure) | `register()`, `login()`, `enrol()`, `group_by_grade()`, … | CLI menus, GUI windows, **and tests** |
+| **Menu** (CLI flow) | `run_student_subsystem()`, `run_subject_menu()`, `run_admin_subsystem()` | only `CLIUniApp.py` |
+
+This keeps the spec recommendation ("controllers contain system menus") while
+letting GUIUniApp and the test suite reuse the exact same business logic
+without duplicating it.
 
 ---
 
 ## Requirements
 
-- Python 3.10 or higher
-- `tkinter` – included with standard Python (required for GUIUniApp only)
-- No third-party packages required
+- **Python 3.10 or higher** (uses `X | Y` union types)
+- **tkinter** (standard library; on Linux: `sudo apt install python3-tk`)
+- No third-party packages
 
 ---
 
-## Running the Applications
+## Running
 
-### Seeding sample data (optional)
-
-To try the system without manually registering accounts, seed `students.data`
-with valid sample records:
-
-```bash
-python populate_data.py              # 15 students (default), overwrites file
-python populate_data.py 30           # 30 students
-python populate_data.py 20 --append  # keep existing records, add 20 more
-python populate_data.py 10 --seed 42 # reproducible output
-```
-
-Every generated student has a valid email and password, 0–4 random subjects,
-and printable login credentials are shown for the first three records.
-
-### CLIUniApp (Command-Line)
+### CLIUniApp
 
 ```bash
 python CLIUniApp.py
 ```
 
-Top-level menu:
 ```
-[1] Student subsystem
-[2] Admin subsystem
-[3] Exit
+════════════════════════════════════════════════════════════
+  CLIUNIAPP – UNIVERSITY ENROLMENT SYSTEM
+════════════════════════════════════════════════════════════
+  [1] Student subsystem
+  [2] Admin subsystem
+  [3] Exit
+────────────────────────────────────────────────────────────
+  Select option:
 ```
 
-#### Student subsystem
-- **Register** – enter name, email (`firstname.lastname@university.com`) and a password
-- **Login** – credentials checked via `Student.check_login_credential(email, pwd)`
-  - Enrol in a new subject (auto-generated Subject ID, random mark 25–100, grade)
-  - Remove an enrolled subject by ID
-  - View all enrolled subjects with marks and grades
-  - Change password
+**Student subsystem**
+- Register → enter email, password, name (with format validation)
+- Login → enter credentials → enters Subject Enrolment menu
+- From Subject Enrolment menu: Enrol, Remove, View, Change Password, Logout
 
-#### Admin subsystem
-- Login with password: **`admin`** – checked via `Admin.check_login_credential(pwd)`
-- View all registered students
-- Group students by grade (HD / D / C / P / Z)
-- Categorise students into PASS / FAIL
-- Remove a student by ID
-- Clear all student data (with confirmation)
+**Admin subsystem** (password: `admin`)
+- View all students
+- Group students by grade (per OVERALL grade — each student appears once)
+- Categorise PASS / FAIL (based on AVERAGE mark ≥ 50)
+- Remove a student
+- Clear all student data
 
-### GUIUniApp (Graphical UI)
+### GUIUniApp
 
 ```bash
 python GUIUniApp.py
 ```
 
-The **Login Window** is the main window. Enter a registered student's email and password.
+Four distinct windows (per the GUIUniApp marking scheme):
 
-> Registration is only available via CLIUniApp — register first, then log in via GUIUniApp.
+1. **Login Window** *(main)* — calls `StudentController.login()`
+2. **Enrolment Window** — calls `SubjectController.enrol()`
+3. **Subject Window** — table of enrolled subjects with marks & grades
+4. **Exception Window** — modal dialog for empty fields, invalid format,
+   incorrect credentials, enrolment limit
 
-After login, the **Enrolment Window** opens, showing:
-- Student details (name, ID, email)
-- Enrolments table (Subject ID, Mark, Grade)
-- **Enrol** – adds a new subject (blocked with warning if already at 4)
-- **Remove** – removes the selected subject after confirmation
-- **Logout** – returns to the Login Window
+> Use `python populate_data.py` first to seed `students.data` with valid sample
+> accounts, then use one of the printed credentials to log in.
 
----
+### populate_data.py (helper)
 
-## API — Method Names (match Part 1 class diagram)
-
-| Class | Method | Purpose |
-|---|---|---|
-| Student | `validate_email_pattern(email)` | Static. Checks `firstname.lastname@university.com` pattern |
-| Student | `validate_password_pattern(pwd)` | Static. Checks uppercase-start / ≥5 letters / ≥3 digits |
-| Student | `check_login_credential(email, pwd)` | Verifies email + password against stored credentials |
-| Student | `enrol()` / `remove_subject(id)` / `view_subjects()` | Enrolment operations |
-| Student | `change_password(new_pwd)` | Password update (with pattern validation) |
-| Admin   | `check_login_credential(pwd)` | Static. Admin uses password only, no email |
-| Admin   | `view_all_students()` / `group_by_grade()` / `group_by_pass_fail()` | Admin queries |
-| Admin   | `remove_student(id)` / `clear_student_data()` | Admin mutations |
-
-Python naming uses `snake_case`; the class diagram uses `camelCase`. These map directly:
-- `validateEmailPattern` ↔ `validate_email_pattern`
-- `validatePasswordPattern` ↔ `validate_password_pattern`
-- `checkLoginCredential` ↔ `check_login_credential`
-
----
-
-## Validation Rules
-
-### Email
-Must match `firstname.lastname@university.com`
-- ✔ `john.smith@university.com`
-- ✘ `johnsmith@university.com`
-- ✘ `john.smith@university`
-
-### Password
-All three conditions must be satisfied:
-1. Starts with an uppercase letter
-2. Contains at least 5 letters in total
-3. Ends with 3 or more digits
-
-- ✔ `David123` (D + avid = 5 letters, 123 = 3 digits)
-- ✘ `david123` (no leading uppercase)
-- ✘ `Dav12345` (only 3 letters)
-
-### Student ID
-- Random integer 1 – 999,999, zero-padded to 6 digits (e.g. `002340`)
-
-### Subject ID
-- Random integer 1 – 999, zero-padded to 3 digits (e.g. `042`)
-
-### Subject Mark
-- Random integer in range 25 – 100
-
-### Grade Scale (UTS)
-| Mark range | Grade |
-|-----------|-------|
-| ≥ 85      | HD    |
-| 75 – 84   | D     |
-| 65 – 74   | C     |
-| 50 – 64   | P     |
-| < 50      | Z     |
-
----
-
-## Data Storage
-
-All data is stored in `students.data` as pipe-delimited plain text.
-
-**Format per line:**
-```
-studentId|name|email|password|subjectId:mark:grade,subjectId:mark:grade,...
+```bash
+python populate_data.py             # 15 students
+python populate_data.py 30          # 30 students
+python populate_data.py 20 --append # add 20 without wiping the file
 ```
 
-**Example:**
-```
-002340|John Smith|john.smith@university.com|David123|042:87:HD,019:63:P
-```
-
----
-
-## Exception Handling
-
-### CLIUniApp
-- Invalid email or password pattern → error message, operation aborted
-- Duplicate email on registration → error message
-- Login with wrong credentials → error message (via `check_login_credential`)
-- Enrolment attempt beyond 4 subjects → warning message
-- Remove non-existent subject ID → error message
-
-### GUIUniApp
-- Empty login fields → `showwarning` ("Missing or Invalid Information")
-- Invalid email/password pattern → `showwarning` ("Missing or Invalid Information")
-- Invalid credentials → `showerror` ("Login Failed")
-- Enrolment attempt beyond 4 subjects → `showwarning` ("Enrolment Limit Reached")
-- Remove without selection → `showinfo` ("No Selection")
-
----
-
-## Running Tests
+### Tests
 
 ```bash
 python test_uniapp.py
 ```
 
-39 unit tests covering: Subject generation & grading, Student pattern validation,
-credential checking, enrolment limits, password changes, serialisation,
-Database CRUD, and all Admin operations.
+33 tests across:
+- **Models** — Subject grade boundaries, Student validation regex, derived properties
+- **StudentController** — register / login: success, bad email, bad password, duplicate, unregistered
+- **SubjectController** — enrol / remove / list / change password (incl. enrolment limit, unpadded ID, persistence)
+- **AdminController** — login credential, group_by_grade (overall grade, no duplicates), partition_pass_fail (average rule), remove, clear
 
 ---
 
-## Design Alignment with Part 1
+## Specification Notes (compliance highlights)
 
-| Part 1 Class | Implemented In |
+These behaviours match the **Assessment 1 – Part 2** brief and sample I/O:
+
+### Email pattern
+`firstname.lastname@university.com`
+
+### Password pattern
+1. Starts with **one uppercase letter**
+2. Followed by **5 or more letters**
+3. Ends with **3 or more digits**
+
+| Input | Result |
 |---|---|
-| Student    | `student.py`   |
-| Subject    | `subject.py`   |
-| Admin      | `admin.py`     |
-| Database   | `database.py`  |
-| CLIUniApp  | `CLIUniApp.py` |
-| GUIUniApp  | `GUIUniApp.py` |
+| `Helloworld123` | ✔ valid |
+| `Newworld123` | ✔ valid |
+| `Hello123` | ✘ invalid (only 5 letters) |
+| `helloworld123` | ✘ invalid (no uppercase) |
+
+### Student ID — random 6-digit, 1–999,999, zero-padded
+### Subject ID — random 3-digit, 1–999, zero-padded
+### Subject mark — random integer 25–100
+### UTS Grade Scale
+| Mark range | Grade |
+|---|---|
+| ≥ 85 | HD |
+| 75 – 84 | D |
+| 65 – 74 | C |
+| 50 – 64 | P |
+| < 50 | Z |
+
+### Pass / Fail rule (admin partition)
+A student PASSES if the **average mark** of all enrolled subjects is **≥ 50**.
+Students with no enrolments are excluded from both PASS and FAIL.
+
+### Group by Grade (admin)
+Each student is placed under their **overall grade** (derived from average mark).
+Every student appears once.
+
+### Maximum subjects: 4
+
+---
+
+## Data Storage
+
+`students.data` is a UTF-8 JSON file:
+
+```json
+[
+  {
+    "id": "622001",
+    "name": "Harper Johnson",
+    "email": "harper.johnson@university.com",
+    "password": "Helloworld123",
+    "subjects": [
+      { "id": "302", "mark": 89, "grade": "HD" }
+    ]
+  }
+]
+```
+
+All reads and writes go through `Database` — no other class touches the file
+directly. Controllers ask the Database to read/write models; the View layer
+never sees the file at all.
+
+---
+
+## How to extend
+
+- **Add a new student-side feature** → add a service method to
+  `SubjectController` (or `StudentController`), then route the CLI menu choice
+  in its `run_*_menu()` method, and optionally add a button + handler in
+  `GUIUniApp.py` that calls the same service method.
+- **Add a new admin operation** → add a service method to `AdminController`,
+  route a new menu option in `_run_admin_menu`.
+- **Add a new view layer** (e.g. a web UI) → import the controllers and call
+  the service methods directly. The CLI menu code stays untouched.

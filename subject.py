@@ -2,21 +2,20 @@
 subject.py – Subject model for CLIUniApp / GUIUniApp
 =====================================================
 Each Subject is auto-generated at enrolment time.
+
+Spec compliance (Assessment 1 – Part 2):
+  - id    : random 3-digit number, 1–999
+  - mark  : random integer in [25, 100]
+  - grade : derived from mark via the UTS scale
+
+Display format matches the sample I/O exactly:
+  [ Subject::541 -- mark = 55 -- grade =   P ]
 """
 
 import random
 
 
 class Subject:
-    """
-    Represents a single enrolled subject.
-
-    Attributes
-    ----------
-    id    : str  – unique 3-digit zero-padded subject ID (e.g. "042")
-    mark  : int  – random mark in [25, 100]
-    grade : str  – letter grade derived from mark
-    """
 
     # UTS grading scale: ordered from highest threshold to lowest
     GRADE_MAP = [
@@ -31,19 +30,18 @@ class Subject:
         """
         Create a Subject.
 
-        If called with no arguments (normal enrolment) all fields are
-        auto-generated. If called with arguments (loading from file) the
-        supplied values are used instead.
+        With no arguments → all fields are auto-generated.
+        With arguments    → the supplied values are used (used when loading from file).
         """
         self.id    = subject_id if subject_id is not None else self._generate_subject_id()
         self.mark  = mark       if mark       is not None else self._generate_mark()
         self.grade = self.calculate_grade(self.mark)
 
-    # ── generation helpers ────────────────────────────────────────────────────
+    # ── generation ────────────────────────────────────────────────────────────
 
     @staticmethod
     def _generate_subject_id() -> str:
-        """Return a random 3-digit zero-padded subject ID."""
+        """Return a random 3-digit zero-padded subject ID (e.g. '042')."""
         return str(random.randint(1, 999)).zfill(3)
 
     @staticmethod
@@ -54,7 +52,7 @@ class Subject:
     # ── grade calculation ─────────────────────────────────────────────────────
 
     @classmethod
-    def calculate_grade(cls, mark: int) -> str:
+    def calculate_grade(cls, mark: float) -> str:
         """
         Apply UTS grading scale:
           mark < 50          → Z (Fail)
@@ -68,22 +66,18 @@ class Subject:
                 return grade
         return "Z"
 
-    # ── serialisation helpers ─────────────────────────────────────────────────
+    # ── serialisation ─────────────────────────────────────────────────────────
 
     def to_dict(self) -> dict:
-        """Serialise to a JSON-friendly dict for storage in students.data."""
         return {"id": self.id, "mark": self.mark, "grade": self.grade}
 
     @classmethod
     def from_dict(cls, data: dict) -> "Subject":
-        """Deserialise from a dict produced by to_dict()."""
         return cls(subject_id=data["id"], mark=int(data["mark"]))
 
     # ── display ───────────────────────────────────────────────────────────────
 
     def __str__(self) -> str:
-        return (
-            f"Subject ID: {self.id}  |  "
-            f"Mark: {self.mark:>3}  |  "
-            f"Grade: {self.grade}"
-        )
+        # Matches sample I/O exactly:
+        #   [ Subject::541 -- mark = 55 -- grade =   P ]
+        return f"[ Subject::{self.id} -- mark = {self.mark} -- grade = {self.grade:>3} ]"

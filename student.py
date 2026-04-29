@@ -1,13 +1,18 @@
 """
 student.py – Student model for CLIUniApp / GUIUniApp
 =====================================================
-Handles registration data, pattern validation, enrolment logic and
-password management for a single student.
+Spec compliance (Assessment 1 – Part 2):
+  - id       : 6-digit random ID, 000001–999999
+  - name     : full name
+  - email    : firstname.lastname@university.com
+  - password : starts with uppercase, ≥5 letters AFTER the uppercase, ≥3 digits
+  - subjects : list of Subject; max 4
+  - average_mark : average mark of all enrolled subjects (re-computed on enrol)
+  - overall_grade: grade derived from the average mark
+  - A student PASSES if average_mark >= 50
 
-Public methods are named to match the Part 1 UML class diagram:
-  - validateEmailPattern   → validate_email_pattern
-  - validatePasswordPattern → validate_password_pattern
-  - checkLoginCredential   → check_login_credential
+Display format (matches sample I/O):
+  John Smith :: 673358 --> Email: john.smith@university.com
 """
 
 import re
@@ -16,28 +21,19 @@ from subject import Subject
 
 
 class Student:
-    """
-    Represents a registered university student.
-
-    Attributes
-    ----------
-    id       : str            – unique 6-digit zero-padded ID (e.g. "002340")
-    name     : str            – full name supplied at registration
-    email    : str            – validated university email
-    password : str            – validated password
-    subjects : list[Subject]  – enrolled subjects; maximum 4
-    """
 
     MAX_SUBJECTS = 4
 
-    # ── email & password patterns ─────────────────────────────────────────────
+    # ── patterns ──────────────────────────────────────────────────────────────
 
     # firstname.lastname@university.com
-    _EMAIL_PATTERN    = re.compile(r"^[a-zA-Z]+\.[a-zA-Z]+@university\.com$")
+    _EMAIL_PATTERN = re.compile(r"^[a-zA-Z]+\.[a-zA-Z]+@university\.com$")
 
-    # Starts with ONE uppercase letter, then >=4 more letters (total >=5 letters),
-    # then >=3 digits, nothing else.
-    _PASSWORD_PATTERN = re.compile(r"^[A-Z][a-zA-Z]{4,}\d{3,}$")
+    # Password: starts with ONE uppercase, then >=5 more letters,
+    # then >=3 digits. So minimum length is 1 + 5 + 3 = 9 characters.
+    # This makes "Hello123" (5 letters) INVALID — matching the assignment sample I/O,
+    # while "Helloworld123" (10 letters) is VALID.
+    _PASSWORD_PATTERN = re.compile(r"^[A-Z][a-zA-Z]{5,}\d{3,}$")
 
     def __init__(
         self,
@@ -64,49 +60,16 @@ class Student:
 
     @classmethod
     def validate_email_pattern(cls, email: str) -> bool:
-        """
-        Return True if email matches firstname.lastname@university.com.
-
-        Examples
-        --------
-        >>> Student.validate_email_pattern("john.smith@university.com")
-        True
-        >>> Student.validate_email_pattern("john.smith@university")
-        False
-        >>> Student.validate_email_pattern("johnsmith@university.com")
-        False
-        """
         return bool(cls._EMAIL_PATTERN.match(email))
 
     @classmethod
     def validate_password_pattern(cls, password: str) -> bool:
-        """
-        Return True if the password satisfies all three criteria:
-          (i)   Starts with an uppercase letter
-          (ii)  Contains at least 5 letters in total
-          (iii) Followed by 3 or more digits
-
-        Examples
-        --------
-        >>> Student.validate_password_pattern("David123")
-        True
-        >>> Student.validate_password_pattern("david123")
-        False
-        >>> Student.validate_password_pattern("Dav123")
-        False
-        """
         return bool(cls._PASSWORD_PATTERN.match(password))
 
     # ── credential checking ───────────────────────────────────────────────────
 
     def check_login_credential(self, email: str, password: str) -> bool:
-        """
-        Verify that the supplied email and password match this student's
-        stored credentials.
-
-        Returns True on match, False otherwise.
-        Email comparison is case-insensitive; password comparison is exact.
-        """
+        """Verify supplied credentials. Email is case-insensitive, password exact."""
         return (
             self.email.lower() == email.lower()
             and self.password == password
@@ -116,12 +79,9 @@ class Student:
 
     def enrol(self) -> Subject | None:
         """
-        Add a new auto-generated Subject to the student's enrolment list.
-
-        Returns
-        -------
-        Subject  – the newly created subject, or
-        None     – if the student is already enrolled in MAX_SUBJECTS subjects.
+        Add a new auto-generated Subject. Returns the new Subject, or None
+        if MAX_SUBJECTS already reached.
+        The student's average_mark is automatically recalculated.
         """
         if len(self.subjects) >= self.MAX_SUBJECTS:
             return None
@@ -130,38 +90,47 @@ class Student:
         return subject
 
     def remove_subject(self, subject_id: str) -> bool:
-        """
-        Remove the subject with the given ID from the enrolment list.
-
-        Returns True if a matching subject was found and removed, False otherwise.
-        """
+        """Remove subject by ID. Returns True if found and removed."""
         for i, subj in enumerate(self.subjects):
             if subj.id == subject_id:
                 self.subjects.pop(i)
                 return True
         return False
 
-    def view_subjects(self) -> list:
-        """Return the current list of enrolled Subject objects."""
-        return list(self.subjects)
+    # ── derived properties ────────────────────────────────────────────────────
+
+    @property
+    def average_mark(self) -> float:
+        """
+        Average mark of all enrolled subjects, recomputed every access.
+        Returns 0.0 if no subjects are enrolled.
+        """
+        if not self.subjects:
+            return 0.0
+        return sum(s.mark for s in self.subjects) / len(self.subjects)
+
+    @property
+    def overall_grade(self) -> str:
+        """Grade derived from the average mark via the UTS scale."""
+        return Subject.calculate_grade(self.average_mark)
+
+    @property
+    def is_pass(self) -> bool:
+        """A student passes if the average mark is >= 50."""
+        return self.average_mark >= 50
 
     # ── account management ────────────────────────────────────────────────────
 
     def change_password(self, new_password: str) -> bool:
-        """
-        Update the stored password if new_password passes pattern validation.
-
-        Returns True on success, False if the new password is invalid.
-        """
+        """Update password if it satisfies the pattern."""
         if not self.validate_password_pattern(new_password):
             return False
         self.password = new_password
         return True
 
-    # ── serialisation helpers ─────────────────────────────────────────────────
+    # ── serialisation ─────────────────────────────────────────────────────────
 
     def to_dict(self) -> dict:
-        """Serialise to a JSON-friendly dict."""
         return {
             "id":       self.id,
             "name":     self.name,
@@ -172,7 +141,6 @@ class Student:
 
     @classmethod
     def from_dict(cls, data: dict) -> "Student":
-        """Deserialise from a dict produced by to_dict()."""
         subjects = [Subject.from_dict(s) for s in data.get("subjects", [])]
         return cls(
             name=data["name"],
@@ -182,19 +150,16 @@ class Student:
             subjects=subjects,
         )
 
-    # ── display helpers ───────────────────────────────────────────────────────
+    # ── display helpers (match sample I/O exactly) ────────────────────────────
 
     def __str__(self) -> str:
-        return (
-            f"ID: {self.id}  |  "
-            f"Name: {self.name:<20}  |  "
-            f"Email: {self.email}"
-        )
+        # Sample format:  John Smith :: 673358 --> Email: john.smith@university.com
+        return f"{self.name} :: {self.id} --> Email: {self.email}"
 
-    def display_subjects(self) -> None:
-        """Print a formatted list of the student's enrolled subjects."""
-        if not self.subjects:
-            print("  [No subjects enrolled]")
-            return
-        for subj in self.subjects:
-            print(f"  {subj}")
+    def short_repr(self) -> str:
+        # Used in admin grouping/partition output:
+        #   John Smith :: 673358 --> GRADE:  C - MARK: 68.25
+        return (
+            f"{self.name} :: {self.id} --> "
+            f"GRADE: {self.overall_grade:>2} - MARK: {self.average_mark:.2f}"
+        )

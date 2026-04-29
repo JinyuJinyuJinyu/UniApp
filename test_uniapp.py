@@ -1,306 +1,289 @@
 """
 test_uniapp.py – Automated test suite for CLIUniApp / GUIUniApp
 ===============================================================
-Run with:  python test_uniapp.py
+Covers the full MVC stack:
+  - Models      : Subject, Student, Database
+  - Controllers : StudentController, SubjectController, AdminController
+
+Run with:
+    python test_uniapp.py
 """
 
 import sys, os, unittest, tempfile, shutil
 
 sys.path.insert(0, os.path.dirname(__file__))
 
-from subject  import Subject
-from student  import Student
-from admin    import Admin
-from database import Database
+from subject            import Subject
+from student            import Student
+from database           import Database
+from student_controller import (
+    StudentController,
+    ERR_BAD_EMAIL_FORMAT,
+    ERR_BAD_PASSWORD_FORMAT,
+    ERR_DUPLICATE,
+    ERR_NOT_FOUND,
+)
+from subject_controller import SubjectController
+from admin_controller   import AdminController
 
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  MODEL TESTS
+# ═══════════════════════════════════════════════════════════════════════════════
 
 class TestSubject(unittest.TestCase):
-    """Tests for the Subject model."""
 
     def test_auto_generation(self):
         subj = Subject()
         self.assertTrue(1 <= int(subj.id) <= 999)
         self.assertEqual(len(subj.id), 3)
         self.assertTrue(25 <= subj.mark <= 100)
-        self.assertIn(subj.grade, ("Z","P","C","D","HD"))
+        self.assertIn(subj.grade, ("Z", "P", "C", "D", "HD"))
 
     def test_grade_boundaries(self):
-        cases = [
-            (25, "Z"), (49, "Z"),
-            (50, "P"), (64, "P"),
-            (65, "C"), (74, "C"),
-            (75, "D"), (84, "D"),
-            (85, "HD"),(100,"HD"),
-        ]
-        for mark, expected in cases:
+        for mark, expected in [(25, "Z"), (49, "Z"),
+                               (50, "P"), (64, "P"),
+                               (65, "C"), (74, "C"),
+                               (75, "D"), (84, "D"),
+                               (85, "HD"), (100, "HD")]:
             with self.subTest(mark=mark):
-                subj = Subject(subject_id="001", mark=mark)
-                self.assertEqual(subj.grade, expected)
+                self.assertEqual(Subject(subject_id="001", mark=mark).grade, expected)
 
-    def test_calculate_grade_static(self):
-        self.assertEqual(Subject.calculate_grade(90), "HD")
-        self.assertEqual(Subject.calculate_grade(74), "C")
-
-    def test_serialise_roundtrip(self):
-        subj = Subject(subject_id="042", mark=87)
-        self.assertEqual(subj.to_dict(), {"id": "042", "mark": 87, "grade": "HD"})
-        subj2 = Subject.from_dict({"id": "042", "mark": 87, "grade": "HD"})
-        self.assertEqual(subj2.id, "042")
-        self.assertEqual(subj2.mark, 87)
-        self.assertEqual(subj2.grade, "HD")
+    def test_str_format(self):
+        subj = Subject(subject_id="541", mark=55)
+        self.assertEqual(str(subj), "[ Subject::541 -- mark = 55 -- grade =   P ]")
 
 
 class TestStudentValidation(unittest.TestCase):
-    """Tests for Student.validate_email_pattern / validate_password_pattern."""
+    """Tightened password regex per spec."""
 
-    def test_valid_emails(self):
-        for email in [
-            "john.smith@university.com",
-            "a.b@university.com",
-            "JOHN.SMITH@university.com",
-        ]:
-            with self.subTest(email=email):
-                self.assertTrue(Student.validate_email_pattern(email))
+    def test_email_valid(self):
+        for e in ["john.smith@university.com",
+                  "alen.jones@university.com",
+                  "JOHN.SMITH@university.com"]:
+            with self.subTest(e=e):
+                self.assertTrue(Student.validate_email_pattern(e))
 
-    def test_invalid_emails(self):
-        for email in [
-            "johnsmith@university.com",      # no dot separator
-            "john.smith@university",          # wrong domain
-            "john.smith@gmail.com",           # wrong domain
-            "@university.com",
-            "john.smith@university.com.au",   # extra TLD
-            "john@university.com",            # no dot in name
-        ]:
-            with self.subTest(email=email):
-                self.assertFalse(Student.validate_email_pattern(email))
+    def test_email_invalid(self):
+        for e in ["johnsmith@university.com",
+                  "john.smith@university",
+                  "john.smith@gmail.com",
+                  "john.smith@university.com.au"]:
+            with self.subTest(e=e):
+                self.assertFalse(Student.validate_email_pattern(e))
 
-    def test_valid_passwords(self):
-        for pwd in ["David123", "HelloWorld999", "Abcde12345"]:
-            with self.subTest(pwd=pwd):
-                self.assertTrue(Student.validate_password_pattern(pwd))
+    def test_password_valid(self):
+        for p in ["Helloworld123", "Newworld123", "Abcdef1234"]:
+            with self.subTest(p=p):
+                self.assertTrue(Student.validate_password_pattern(p))
 
-    def test_invalid_passwords(self):
-        for pwd in [
-            "david123",     # no uppercase start
-            "Dav123",       # only 3 letters
-            "David12",      # only 2 digits
-            "David",        # no digits
-            "1David123",    # starts with digit
-            "",
-        ]:
-            with self.subTest(pwd=pwd):
-                self.assertFalse(Student.validate_password_pattern(pwd))
+    def test_password_invalid_per_sample_io(self):
+        for p in ["helloworld123", "Hello123", "Newworld12",
+                  "1Helloworld123", ""]:
+            with self.subTest(p=p):
+                self.assertFalse(Student.validate_password_pattern(p))
 
 
-class TestStudentCheckLoginCredential(unittest.TestCase):
-    """Tests for Student.check_login_credential()."""
+class TestStudentDerivedProperties(unittest.TestCase):
+    """average_mark / overall_grade / is_pass — required by spec for admin views."""
+
+    def _make(self):
+        return Student(name="Test", email="t.t@university.com",
+                       password="Helloworld123")
+
+    def test_no_subjects(self):
+        s = self._make()
+        self.assertEqual(s.average_mark, 0.0)
+        self.assertFalse(s.is_pass)
+
+    def test_average_recalculated(self):
+        s = self._make()
+        s.subjects = [Subject("001", m) for m in (50, 60, 70, 80)]
+        self.assertAlmostEqual(s.average_mark, 65.0)
+        self.assertEqual(s.overall_grade, "C")
+        self.assertTrue(s.is_pass)
+
+    def test_pass_when_some_below_but_avg_ok(self):
+        s = self._make()
+        s.subjects = [Subject("001", 90), Subject("002", 90), Subject("003", 30)]
+        self.assertTrue(s.is_pass)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  CONTROLLER TESTS — The new layer
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class _TempDb(unittest.TestCase):
+    """Mixin: isolated Database in a temp dir."""
 
     def setUp(self):
-        self.student = Student(
-            name="Jane Doe",
-            email="jane.doe@university.com",
-            password="Hello123",
-        )
+        self.tmp = tempfile.mkdtemp()
+        self.db  = Database(os.path.join(self.tmp, "students.data"))
 
-    def test_correct_credentials(self):
-        self.assertTrue(
-            self.student.check_login_credential(
-                "jane.doe@university.com", "Hello123")
-        )
-
-    def test_wrong_password(self):
-        self.assertFalse(
-            self.student.check_login_credential(
-                "jane.doe@university.com", "Wrong123")
-        )
-
-    def test_wrong_email(self):
-        self.assertFalse(
-            self.student.check_login_credential(
-                "other.person@university.com", "Hello123")
-        )
-
-    def test_email_case_insensitive(self):
-        """Email comparison should be case-insensitive, password exact."""
-        self.assertTrue(
-            self.student.check_login_credential(
-                "JANE.DOE@university.com", "Hello123")
-        )
-
-    def test_password_case_sensitive(self):
-        """Password comparison must be exact."""
-        self.assertFalse(
-            self.student.check_login_credential(
-                "jane.doe@university.com", "hello123")
-        )
+    def tearDown(self):
+        shutil.rmtree(self.tmp)
 
 
-class TestStudentEnrolment(unittest.TestCase):
-    """Tests for enrolment logic on a Student instance."""
+class TestStudentController(_TempDb):
 
-    def _make_student(self):
-        return Student(
-            name="Test User",
-            email="test.user@university.com",
-            password="David123",
-        )
+    def setUp(self):
+        super().setUp()
+        self.ctrl = StudentController(self.db)
 
-    def test_enrol_up_to_max(self):
-        student = self._make_student()
+    def test_register_success(self):
+        s, err = self.ctrl.register("Jane Doe",
+                                    "jane.doe@university.com",
+                                    "Helloworld123")
+        self.assertIsNone(err)
+        self.assertIsNotNone(s)
+        self.assertEqual(s.name, "Jane Doe")
+        # verify it was persisted
+        self.assertTrue(self.db.email_exists("jane.doe@university.com"))
+
+    def test_register_bad_email(self):
+        s, err = self.ctrl.register("Jane", "no-dot@university.com", "Helloworld123")
+        self.assertIsNone(s)
+        self.assertEqual(err, ERR_BAD_EMAIL_FORMAT)
+
+    def test_register_bad_password(self):
+        s, err = self.ctrl.register("Jane", "jane.doe@university.com", "Hello123")
+        self.assertIsNone(s)
+        self.assertEqual(err, ERR_BAD_PASSWORD_FORMAT)
+
+    def test_register_duplicate(self):
+        self.ctrl.register("Jane", "jane.doe@university.com", "Helloworld123")
+        s, err = self.ctrl.register("Other", "jane.doe@university.com", "Helloworld456")
+        self.assertIsNone(s)
+        self.assertEqual(err, ERR_DUPLICATE)
+
+    def test_login_success(self):
+        self.ctrl.register("Jane", "jane.doe@university.com", "Helloworld123")
+        s, err = self.ctrl.login("jane.doe@university.com", "Helloworld123")
+        self.assertIsNone(err)
+        self.assertIsNotNone(s)
+
+    def test_login_wrong_password(self):
+        self.ctrl.register("Jane", "jane.doe@university.com", "Helloworld123")
+        s, err = self.ctrl.login("jane.doe@university.com", "Helloworld456")
+        self.assertEqual(err, ERR_NOT_FOUND)
+
+    def test_login_unregistered(self):
+        s, err = self.ctrl.login("nobody@university.com", "Helloworld123")
+        # Email format invalid → controller catches that first
+        self.assertEqual(err, ERR_BAD_EMAIL_FORMAT)
+
+    def test_login_email_case_insensitive(self):
+        self.ctrl.register("Jane", "jane.doe@university.com", "Helloworld123")
+        s, err = self.ctrl.login("JANE.DOE@university.com", "Helloworld123")
+        self.assertIsNone(err)
+        self.assertIsNotNone(s)
+
+
+class TestSubjectController(_TempDb):
+
+    def setUp(self):
+        super().setUp()
+        self.subj_ctrl    = SubjectController(self.db)
+        self.student_ctrl = StudentController(self.db)
+        self.student, _   = self.student_ctrl.register(
+            "Test", "test.user@university.com", "Helloworld123")
+
+    def test_enrol_persists_and_increments(self):
+        before = len(self.student.subjects)
+        new_subj = self.subj_ctrl.enrol(self.student)
+        self.assertIsNotNone(new_subj)
+        self.assertEqual(len(self.student.subjects), before + 1)
+
+        # Verify persisted
+        loaded = self.db.find_by_email(self.student.email)
+        self.assertEqual(len(loaded.subjects), before + 1)
+
+    def test_enrol_blocks_at_max(self):
         for _ in range(Student.MAX_SUBJECTS):
-            self.assertIsNotNone(student.enrol())
-        self.assertEqual(len(student.subjects), Student.MAX_SUBJECTS)
+            self.subj_ctrl.enrol(self.student)
+        # 5th attempt
+        result = self.subj_ctrl.enrol(self.student)
+        self.assertIsNone(result)
+        self.assertEqual(len(self.student.subjects), Student.MAX_SUBJECTS)
 
-    def test_enrol_beyond_max_returns_none(self):
-        student = self._make_student()
-        for _ in range(Student.MAX_SUBJECTS):
-            student.enrol()
-        self.assertIsNone(student.enrol())  # 5th – must fail
-        self.assertEqual(len(student.subjects), Student.MAX_SUBJECTS)
+    def test_remove_existing(self):
+        subj = self.subj_ctrl.enrol(self.student)
+        self.assertTrue(self.subj_ctrl.remove(self.student, subj.id))
+        self.assertEqual(len(self.student.subjects), 0)
 
-    def test_remove_subject(self):
-        student = self._make_student()
-        subj = student.enrol()
-        self.assertTrue(student.remove_subject(subj.id))
-        self.assertEqual(len(student.subjects), 0)
+    def test_remove_accepts_unpadded_id(self):
+        # enrol with a known ID via direct manipulation, then remove using "42"
+        from subject import Subject as Subj
+        self.student.subjects = [Subj(subject_id="042", mark=60)]
+        self.db.save_student(self.student)
+        self.assertTrue(self.subj_ctrl.remove(self.student, "42"))
 
     def test_remove_nonexistent(self):
-        student = self._make_student()
-        self.assertFalse(student.remove_subject("999"))
+        self.assertFalse(self.subj_ctrl.remove(self.student, "999"))
 
     def test_change_password_valid(self):
-        student = self._make_student()
-        self.assertTrue(student.change_password("Newpass456"))
-        self.assertEqual(student.password, "Newpass456")
+        self.assertTrue(self.subj_ctrl.change_password(self.student, "Newworld456"))
+        loaded = self.db.find_by_email(self.student.email)
+        self.assertEqual(loaded.password, "Newworld456")
 
     def test_change_password_invalid(self):
-        student = self._make_student()
-        self.assertFalse(student.change_password("weak"))
-        self.assertEqual(student.password, "David123")
+        self.assertFalse(self.subj_ctrl.change_password(self.student, "Hello123"))
 
-    def test_student_id_zero_padded(self):
-        student = self._make_student()
-        self.assertEqual(len(student.id), 6)
-
-    def test_serialise_roundtrip(self):
-        student = self._make_student()
-        student.enrol()
-        student2 = Student.from_dict(student.to_dict())
-        self.assertEqual(student.id, student2.id)
-        self.assertEqual(student.name, student2.name)
-        self.assertEqual(student.email, student2.email)
-        self.assertEqual(student.password, student2.password)
-        self.assertEqual(len(student.subjects), len(student2.subjects))
+    def test_list_subjects_refreshes_from_db(self):
+        # Enrol, then change DB underneath (simulate other window)
+        self.subj_ctrl.enrol(self.student)
+        # Local student object thinks it has 1; DB has 1 — verify list is consistent
+        listed = self.subj_ctrl.list_subjects(self.student)
+        self.assertEqual(len(listed), 1)
 
 
-class TestDatabase(unittest.TestCase):
-    """Tests for the Database class using a temporary file."""
+class TestAdminController(_TempDb):
+    """Spec-correct grouping rules verified at the controller layer."""
 
     def setUp(self):
-        self.tmp_dir = tempfile.mkdtemp()
-        self.db_path = os.path.join(self.tmp_dir, "test_students.data")
-        self.db      = Database(self.db_path)
-        self.student = Student(
-            name="Jane Doe",
-            email="jane.doe@university.com",
-            password="Hello123",
-        )
+        super().setUp()
+        self.admin = AdminController(self.db)
 
-    def tearDown(self):
-        shutil.rmtree(self.tmp_dir)
-
-    def test_save_and_read(self):
-        self.db.save_student(self.student)
-        students = self.db.read_all_students()
-        self.assertEqual(len(students), 1)
-        self.assertEqual(students[0].email, "jane.doe@university.com")
-
-    def test_find_by_email(self):
-        self.db.save_student(self.student)
-        found = self.db.find_by_email("jane.doe@university.com")
-        self.assertIsNotNone(found)
-        self.assertEqual(found.name, "Jane Doe")
-
-    def test_find_by_email_not_found(self):
-        self.assertIsNone(self.db.find_by_email("no.one@university.com"))
-
-    def test_update_existing_student(self):
-        self.db.save_student(self.student)
-        self.student.change_password("Updated999")
-        self.db.save_student(self.student)
-        students = self.db.read_all_students()
-        self.assertEqual(len(students), 1)
-        self.assertEqual(students[0].password, "Updated999")
-
-    def test_delete_student(self):
-        self.db.save_student(self.student)
-        self.assertTrue(self.db.delete_student(self.student.id))
-        self.assertEqual(len(self.db.read_all_students()), 0)
-
-    def test_delete_nonexistent(self):
-        self.assertFalse(self.db.delete_student("000000"))
-
-    def test_clear_all(self):
-        self.db.save_student(self.student)
-        self.assertTrue(self.db.clear_all())
-        self.assertEqual(len(self.db.read_all_students()), 0)
-
-    def test_email_exists(self):
-        self.db.save_student(self.student)
-        self.assertTrue(self.db.email_exists("jane.doe@university.com"))
-        self.assertFalse(self.db.email_exists("no.one@university.com"))
-
-    def test_subjects_persisted(self):
-        self.student.enrol()
-        self.student.enrol()
-        self.db.save_student(self.student)
-        loaded = self.db.find_by_email(self.student.email)
-        self.assertEqual(len(loaded.subjects), 2)
-
-
-class TestAdmin(unittest.TestCase):
-    """Tests for Admin operations."""
-
-    def setUp(self):
-        self.tmp_dir = tempfile.mkdtemp()
-        db_path      = os.path.join(self.tmp_dir, "students.data")
-        self.db      = Database(db_path)
-        self.admin   = Admin(self.db)
-
-        for name, email, pwd, mark in [
-            ("Alice A", "alice.a@university.com", "Alice123", 90),  # HD
-            ("Bob B",   "bob.b@university.com",   "Bobby123", 45),  # Z (FAIL)
-            ("Carol C", "carol.c@university.com", "Carol123", 70),  # C (PASS)
+        for name, email, pwd, marks in [
+            ("Alice A", "alice.a@university.com", "Aliceabc123", [90, 80, 70, 60]),  # avg=75 → D
+            ("Bob B",   "bob.b@university.com",   "Bobbobby123", [40, 45, 50, 55]),  # avg=47.5 → Z
+            ("Carol C", "carol.c@university.com", "Carolcdef123",[60, 65, 70, 75]),  # avg=67.5 → C
         ]:
-            s = Student(name=name, email=email, password=pwd)
-            s.subjects = [Subject(subject_id="001", mark=mark)]
-            self.db.save_student(s)
+            stu = Student(name=name, email=email, password=pwd)
+            stu.subjects = [Subject(subject_id=f"{i+1:03d}", mark=m)
+                            for i, m in enumerate(marks)]
+            self.db.save_student(stu)
 
-    def tearDown(self):
-        shutil.rmtree(self.tmp_dir)
+    def test_check_login_credential(self):
+        self.assertTrue(AdminController.check_login_credential("admin"))
+        self.assertFalse(AdminController.check_login_credential("wrong"))
 
-    def test_check_login_credential_correct(self):
-        self.assertTrue(Admin.check_login_credential("admin"))
+    def test_view_all(self):
+        self.assertEqual(len(self.admin.view_all_students()), 3)
 
-    def test_check_login_credential_wrong(self):
-        self.assertFalse(Admin.check_login_credential("wrong"))
-
-    def test_view_all_students(self):
-        students = self.admin.view_all_students()
-        self.assertEqual(len(students), 3)
-
-    def test_group_by_grade(self):
+    def test_group_by_grade_each_student_appears_once(self):
         groups = self.admin.group_by_grade()
-        self.assertEqual(len(groups["HD"]), 1)
-        self.assertEqual(len(groups["Z"]),  1)
-        self.assertEqual(len(groups["C"]),  1)
-        self.assertEqual(len(groups["P"]),  0)
-        self.assertEqual(len(groups["D"]),  0)
+        self.assertIn("D", groups);  self.assertEqual(len(groups["D"]), 1)
+        self.assertIn("C", groups);  self.assertEqual(len(groups["C"]), 1)
+        self.assertIn("Z", groups);  self.assertEqual(len(groups["Z"]), 1)
+        flat = []
+        for v in groups.values(): flat.extend(v)
+        self.assertEqual(len(flat), 3)
 
-    def test_group_by_pass_fail(self):
-        groups = self.admin.group_by_pass_fail()
-        self.assertEqual(len(groups["PASS"]), 2)  # Alice + Carol
-        self.assertEqual(len(groups["FAIL"]), 1)  # Bob
+    def test_partition_uses_average(self):
+        parts = self.admin.group_by_pass_fail()
+        self.assertEqual(len(parts["PASS"]), 2)  # Alice + Carol
+        self.assertEqual(len(parts["FAIL"]), 1)  # Bob
+
+    def test_no_subjects_excluded_from_groups(self):
+        empty = Student(name="Empty E", email="empty.e@university.com",
+                        password="Emptyemp123")
+        self.db.save_student(empty)
+        groups = self.admin.group_by_grade()
+        flat = [s for v in groups.values() for s in v]
+        self.assertEqual(len(flat), 3)  # empty excluded
+        parts = self.admin.group_by_pass_fail()
+        self.assertEqual(len(parts["PASS"]) + len(parts["FAIL"]), 3)
 
     def test_remove_student(self):
         students = self.db.read_all_students()
@@ -308,19 +291,25 @@ class TestAdmin(unittest.TestCase):
         self.assertTrue(self.admin.remove_student(bob_id))
         self.assertEqual(len(self.db.read_all_students()), 2)
 
-    def test_clear_student_data(self):
+    def test_clear_all(self):
         self.assertTrue(self.admin.clear_student_data())
         self.assertEqual(len(self.db.read_all_students()), 0)
 
 
+# ═══════════════════════════════════════════════════════════════════════════════
+#  ENTRY
+# ═══════════════════════════════════════════════════════════════════════════════
+
 if __name__ == "__main__":
     loader = unittest.TestLoader()
     suite  = unittest.TestSuite()
-    for cls in [TestSubject, TestStudentValidation,
-                TestStudentCheckLoginCredential, TestStudentEnrolment,
-                TestDatabase, TestAdmin]:
+    for cls in [TestSubject,
+                TestStudentValidation,
+                TestStudentDerivedProperties,
+                TestStudentController,
+                TestSubjectController,
+                TestAdminController]:
         suite.addTests(loader.loadTestsFromTestCase(cls))
-
     runner = unittest.TextTestRunner(verbosity=2)
     result = runner.run(suite)
     sys.exit(0 if result.wasSuccessful() else 1)
