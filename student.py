@@ -160,32 +160,25 @@ class Student:
 
     # ── serialisation helpers ─────────────────────────────────────────────────
 
-    def to_string(self) -> str:
-        """
-        Serialise to a single pipe-delimited line:
-          id|name|email|password|subj1,subj2,...
-        """
-        subjects_str = ",".join(s.to_string() for s in self.subjects)
-        return f"{self.id}|{self.name}|{self.email}|{self.password}|{subjects_str}"
+    def to_dict(self) -> dict:
+        """Serialise to a JSON-friendly dict."""
+        return {
+            "id":       self.id,
+            "name":     self.name,
+            "email":    self.email,
+            "password": self.password,
+            "subjects": [s.to_dict() for s in self.subjects],
+        }
 
     @classmethod
-    def from_string(cls, line: str) -> "Student":
-        """Deserialise from a line produced by to_string()."""
-        parts    = line.strip().split("|")
-        sid      = parts[0]
-        name     = parts[1]
-        email    = parts[2]
-        password = parts[3]
-        subjects_str = parts[4] if len(parts) > 4 else ""
-        subjects = (
-            [Subject.from_string(t) for t in subjects_str.split(",") if t]
-            if subjects_str else []
-        )
+    def from_dict(cls, data: dict) -> "Student":
+        """Deserialise from a dict produced by to_dict()."""
+        subjects = [Subject.from_dict(s) for s in data.get("subjects", [])]
         return cls(
-            name=name,
-            email=email,
-            password=password,
-            student_id=sid,
+            name=data["name"],
+            email=data["email"],
+            password=data["password"],
+            student_id=data["id"],
             subjects=subjects,
         )
 

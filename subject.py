@@ -70,15 +70,14 @@ class Subject:
 
     # ── serialisation helpers ─────────────────────────────────────────────────
 
-    def to_string(self) -> str:
-        """Serialise to 'id:mark:grade' for storage in students.data."""
-        return f"{self.id}:{self.mark}:{self.grade}"
+    def to_dict(self) -> dict:
+        """Serialise to a JSON-friendly dict for storage in students.data."""
+        return {"id": self.id, "mark": self.mark, "grade": self.grade}
 
     @classmethod
-    def from_string(cls, token: str) -> "Subject":
-        """Deserialise from 'id:mark:grade' produced by to_string()."""
-        parts = token.split(":")
-        return cls(subject_id=parts[0], mark=int(parts[1]))
+    def from_dict(cls, data: dict) -> "Subject":
+        """Deserialise from a dict produced by to_dict()."""
+        return cls(subject_id=data["id"], mark=int(data["mark"]))
 
     # ── display ───────────────────────────────────────────────────────────────
 

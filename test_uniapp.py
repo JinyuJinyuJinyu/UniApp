@@ -43,8 +43,8 @@ class TestSubject(unittest.TestCase):
 
     def test_serialise_roundtrip(self):
         subj = Subject(subject_id="042", mark=87)
-        self.assertEqual(subj.to_string(), "042:87:HD")
-        subj2 = Subject.from_string("042:87:HD")
+        self.assertEqual(subj.to_dict(), {"id": "042", "mark": 87, "grade": "HD"})
+        subj2 = Subject.from_dict({"id": "042", "mark": 87, "grade": "HD"})
         self.assertEqual(subj2.id, "042")
         self.assertEqual(subj2.mark, 87)
         self.assertEqual(subj2.grade, "HD")
@@ -185,8 +185,7 @@ class TestStudentEnrolment(unittest.TestCase):
     def test_serialise_roundtrip(self):
         student = self._make_student()
         student.enrol()
-        line = student.to_string()
-        student2 = Student.from_string(line)
+        student2 = Student.from_dict(student.to_dict())
         self.assertEqual(student.id, student2.id)
         self.assertEqual(student.name, student2.name)
         self.assertEqual(student.email, student2.email)

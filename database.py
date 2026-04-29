@@ -2,13 +2,18 @@
 database.py – Data-access layer for CLIUniApp / GUIUniApp
 =========================================================
 All reading and writing of students.data is centralised here.
-The file format is one student per line:
+The file format is a JSON array of student objects:
 
-  id|name|email|password|subjectId:mark:grade,subjectId:mark:grade,...
+  [
+    {"id": "...", "name": "...", "email": "...", "password": "...",
+     "subjects": [{"id": "...", "mark": 87, "grade": "HD"}, ...]},
+    ...
+  ]
 
-Lines are terminated by a Unix newline. An empty file means no students.
+An empty file (or "[]") means no students.
 """
 
+import json
 import os
 from student import Student
 
@@ -24,9 +29,10 @@ class Database:
 
     def __init__(self, filename: str = "students.data"):
         self.filename = filename
-        # Ensure the file exists
+        # Ensure the file exists and contains a valid empty JSON array
         if not os.path.exists(self.filename):
-            open(self.filename, "w").close()
+            with open(self.filename, "w") as f:
+                json.dump([], f)
 
     # ── read ──────────────────────────────────────────────────────────────────
 
@@ -35,16 +41,15 @@ class Database:
         Load and return all Student objects from the data file.
         Returns an empty list if the file is empty or does not exist.
         """
-        students = []
         try:
             with open(self.filename, "r") as f:
-                for line in f:
-                    line = line.strip()
-                    if line:
-                        students.append(Student.from_string(line))
-        except FileNotFoundError:
-            pass
-        return students
+                content = f.read().strip()
+            if not content:
+                return []
+            data = json.loads(content)
+        except (FileNotFoundError, json.JSONDecodeError):
+            return []
+        return [Student.from_dict(d) for d in data]
 
     def find_by_email(self, email: str) -> Student | None:
         """
@@ -70,8 +75,7 @@ class Database:
         This is the single write path – all mutation goes through here.
         """
         with open(self.filename, "w") as f:
-            for student in students:
-                f.write(student.to_string() + "\n")
+            json.dump([s.to_dict() for s in students], f, indent=2)
 
     def save_student(self, student: Student) -> None:
         """
@@ -104,7 +108,8 @@ class Database:
     def clear_all(self) -> bool:
         """Empty the students.data file. Returns True on success."""
         try:
-            open(self.filename, "w").close()
+            with open(self.filename, "w") as f:
+                json.dump([], f)
             return True
         except IOError:
             return False
