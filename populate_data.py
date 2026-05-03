@@ -42,11 +42,11 @@ def random_password() -> str:
     """
     Build a password that passes Student.validate_password_pattern:
       - starts with an uppercase letter
-      - at least 5 letters total
+      - at least 5 MORE letters after the leading uppercase (≥6 letters total)
       - ends with 3+ digits
     """
-    letters = "abcdefghijklmnopqrstuvwxyz"
-    body_len = random.randint(4, 7)                       # -> 5..8 letters total
+    letters  = "abcdefghijklmnopqrstuvwxyz"
+    body_len = random.randint(5, 8)                       # 5..8 lowercase letters
     body     = "".join(random.choices(letters, k=body_len))
     digits   = "".join(random.choices("0123456789", k=random.randint(3, 4)))
     return random.choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ") + body + digits
