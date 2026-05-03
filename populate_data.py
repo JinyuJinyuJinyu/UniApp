@@ -22,7 +22,7 @@ from subject  import Subject
 from database import Database
 
 
-# ── sample name pool ────────────────────────────────────────────────────────
+#sample name pool
 FIRST_NAMES = [
     "David",  "Sarah",  "Liam",    "Emma",   "Noah",   "Olivia",
     "James",  "Ava",    "Lucas",   "Mia",    "Ethan",  "Isabella",
