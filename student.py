@@ -24,7 +24,7 @@ class Student:
 
     MAX_SUBJECTS = 4
 
-    # ── patterns ──────────────────────────────────────────────────────────────
+    # patterns
 
     # firstname.lastname@university.com
     _EMAIL_PATTERN = re.compile(r"^[a-zA-Z]+\.[a-zA-Z]+@university\.com$")
@@ -49,14 +49,14 @@ class Student:
         self.password = password
         self.subjects = subjects if subjects is not None else []
 
-    # ── ID generation ─────────────────────────────────────────────────────────
+    # ID generation
 
     @staticmethod
     def _generate_student_id() -> str:
         """Generate a random 6-digit zero-padded student ID."""
         return str(random.randint(1, 999_999)).zfill(6)
 
-    # ── pattern validation ────────────────────────────────────────────────────
+    #pattern validation
 
     @classmethod
     def validate_email_pattern(cls, email: str) -> bool:
@@ -66,7 +66,7 @@ class Student:
     def validate_password_pattern(cls, password: str) -> bool:
         return bool(cls._PASSWORD_PATTERN.match(password))
 
-    # ── credential checking ───────────────────────────────────────────────────
+    #credential checking
 
     def check_login_credential(self, email: str, password: str) -> bool:
         """Verify supplied credentials. Email is case-insensitive, password exact."""
@@ -75,7 +75,7 @@ class Student:
             and self.password == password
         )
 
-    # ── enrolment operations ──────────────────────────────────────────────────
+    #enrolment operations
 
     def enrol(self) -> Subject | None:
         """
@@ -97,7 +97,7 @@ class Student:
                 return True
         return False
 
-    # ── derived properties ────────────────────────────────────────────────────
+    #derived properties
 
     @property
     def average_mark(self) -> float:
@@ -119,7 +119,7 @@ class Student:
         """A student passes if the average mark is >= 50."""
         return self.average_mark >= 50
 
-    # ── account management ────────────────────────────────────────────────────
+    #account management
 
     def change_password(self, new_password: str) -> bool:
         """Update password if it satisfies the pattern."""
@@ -128,7 +128,7 @@ class Student:
         self.password = new_password
         return True
 
-    # ── serialisation ─────────────────────────────────────────────────────────
+    #serialisation
 
     def to_dict(self) -> dict:
         return {
@@ -150,7 +150,7 @@ class Student:
             subjects=subjects,
         )
 
-    # ── display helpers (match sample I/O exactly) ────────────────────────────
+    #display helpers (match sample I/O exactly) 
 
     def __str__(self) -> str:
         # Sample format:  John Smith :: 673358 --> Email: john.smith@university.com
