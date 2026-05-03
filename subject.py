@@ -37,7 +37,7 @@ class Subject:
         self.mark  = mark       if mark       is not None else self._generate_mark()
         self.grade = self.calculate_grade(self.mark)
 
-    # ── generation ────────────────────────────────────────────────────────────
+    #generation
 
     @staticmethod
     def _generate_subject_id() -> str:
@@ -49,7 +49,7 @@ class Subject:
         """Return a random integer mark in the inclusive range [25, 100]."""
         return random.randint(25, 100)
 
-    # ── grade calculation ─────────────────────────────────────────────────────
+    #grade calculation
 
     @classmethod
     def calculate_grade(cls, mark: float) -> str:
@@ -66,7 +66,7 @@ class Subject:
                 return grade
         return "Z"
 
-    # ── serialisation ─────────────────────────────────────────────────────────
+    #serialisation
 
     def to_dict(self) -> dict:
         return {"id": self.id, "mark": self.mark, "grade": self.grade}
@@ -75,7 +75,7 @@ class Subject:
     def from_dict(cls, data: dict) -> "Subject":
         return cls(subject_id=data["id"], mark=int(data["mark"]))
 
-    # ── display ───────────────────────────────────────────────────────────────
+    #display
 
     def __str__(self) -> str:
         # Matches sample I/O exactly:
