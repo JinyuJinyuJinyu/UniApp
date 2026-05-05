@@ -25,6 +25,19 @@ class Subject:
         (50, "P"),
         (0,  "Z"),
     ]
+    """
+    def calculate_grade(self, mark: float) -> str:
+    if mark >= 85:
+        return "HD"
+    elif mark >= 75:
+        return "D"
+    elif mark >= 65:
+        return "C"
+    elif mark >= 50:
+        return "P"
+    else:
+        return "Z"
+    """
 
     def __init__(self, subject_id: str = None, mark: int = None):
         """
@@ -33,11 +46,19 @@ class Subject:
         With no arguments → all fields are auto-generated.
         With arguments    → the supplied values are used (used when loading from file).
         """
-        self.id    = subject_id if subject_id is not None else self._generate_subject_id()
-        self.mark  = mark       if mark       is not None else self._generate_mark()
+        
+        if subject_id is None:
+            self.id = self._generate_subject_id()
+        else:
+            self.id = subject_id
+        if mark is None:
+            self.mark = self._generate_mark()
+        else:
+            self.mark = mark
+
         self.grade = self.calculate_grade(self.mark)
 
-    # ── generation ────────────────────────────────────────────────────────────
+    #--generation-------------------------------------
 
     @staticmethod
     def _generate_subject_id() -> str:
@@ -49,7 +70,7 @@ class Subject:
         """Return a random integer mark in the inclusive range [25, 100]."""
         return random.randint(25, 100)
 
-    # ── grade calculation ─────────────────────────────────────────────────────
+    #--grade calculation-----------------------------
 
     @classmethod
     def calculate_grade(cls, mark: float) -> str:
@@ -66,7 +87,7 @@ class Subject:
                 return grade
         return "Z"
 
-    # ── serialisation ─────────────────────────────────────────────────────────
+    #--serialisation---------------------------------
 
     def to_dict(self) -> dict:
         return {"id": self.id, "mark": self.mark, "grade": self.grade}
@@ -75,7 +96,7 @@ class Subject:
     def from_dict(cls, data: dict) -> "Subject":
         return cls(subject_id=data["id"], mark=int(data["mark"]))
 
-    # ── display ───────────────────────────────────────────────────────────────
+    #--display---------------------------------------
 
     def __str__(self) -> str:
         # Matches sample I/O exactly:

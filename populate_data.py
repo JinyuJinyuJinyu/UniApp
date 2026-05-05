@@ -22,7 +22,7 @@ from subject  import Subject
 from database import Database
 
 
-# ── sample name pool ────────────────────────────────────────────────────────
+#-------sample name pool------------------------------------------------
 FIRST_NAMES = [
     "David",  "Sarah",  "Liam",    "Emma",   "Noah",   "Olivia",
     "James",  "Ava",    "Lucas",   "Mia",    "Ethan",  "Isabella",
@@ -76,7 +76,7 @@ def make_student(used_emails: set, used_ids: set) -> Student:
         subjects   = [],
     )
 
-    # Give each student 0–4 unique subjects
+    # ----Give each student 0–4 unique subjects------------------------
     subject_count = random.randint(0, Student.MAX_SUBJECTS)
     used_subject_ids: set = set()
     for _ in range(subject_count):
@@ -103,10 +103,15 @@ def populate(count: int, append: bool, seed: int | None) -> None:
     existing: list = []
     if append:
         existing = db.read_all_students()
-        used_emails.update(s.email.lower() for s in existing)
-        used_ids.update(s.id for s in existing)
+        #修改
+        for s in existing:
+            used_emails.add(s.email.lower())
+            used_ids.add(s.id)
 
-    new_students = [make_student(used_emails, used_ids) for _ in range(count)]
+    #new_students = [make_student(used_emails, used_ids) for _ in range(count)]-------修改
+    new_students = []
+    for _ in range(count):
+        new_students.append(make_student(used_emails, used_ids))
 
     if append:
         db.write_all_students(existing + new_students)
