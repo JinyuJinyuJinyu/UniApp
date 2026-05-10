@@ -1,3 +1,8 @@
+"""Subject_controller.py 
+
+Student Name: Sai Som Seng
+Student ID: 25724218"""
+
 """
 subject_controller.py – Controller for subject enrolment operations
 ===================================================================
@@ -22,55 +27,45 @@ class SubjectController:
         self._db = db
 
     # ═════════════════════════════════════════════════════════════════════════
-    #  SERVICE METHODS — pure, reusable
+    #  Subject Functions
     # ═════════════════════════════════════════════════════════════════════════
 
-    def enrol(self, student: Student) -> Subject | None:
-        """
-        Enrol the student in a new auto-generated subject.
-
-        Returns the new Subject, or None if MAX_SUBJECTS already reached.
-        Persists the change.
-        """
+    #Enrols the student
+    #Returns a new subject or NONE if MAXED_SUBJECTS (4/4)
+    def enrol(self, student):
         subject = student.enrol()
         if subject is None:
             return None
         self._db.save_student(student)
         return subject
 
-    def remove(self, student: Student, subject_id: str) -> bool:
-        """
-        Remove a subject by ID. Accepts both 3-digit ('042') and trimmed ('42').
-        Returns True if removed, False if not found.
-        """
+    #Removing a subject by ID - Accepts both 3-digits and 2-digits; for example - ('011') and ('11')
+    def remove(self, student, subject_id):
         sid = subject_id.strip().zfill(3)
         if not student.remove_subject(sid):
             return False
         self._db.save_student(student)
         return True
 
-    def list_subjects(self, student: Student) -> list:
-        """Return the current list of enrolled subjects (refreshed from DB)."""
+    #Return/List the current list of enrolled subjects 
+    def list_subjects(self, student):
         fresh = self._db.find_by_email(student.email)
         if fresh is not None:
             student.subjects = fresh.subjects
         return student.subjects
 
-    def change_password(self, student: Student, new_password: str) -> bool:
-        """
-        Update the student's password (with pattern validation) and persist.
-        Returns True on success.
-        """
+    #Update the student's new password with validation check
+    def change_password(self, student, new_password):
         if not student.change_password(new_password):
             return False
         self._db.save_student(student)
         return True
 
     # ═════════════════════════════════════════════════════════════════════════
-    #  CLI MENU
+    #  Subject Menu
     # ═════════════════════════════════════════════════════════════════════════
 
-    def run_subject_menu(self, student: Student) -> None:
+    def run_subject_menu(self, student: Student):
         """Subject Enrolment menu — runs until logout."""
         while True:
             banner(f"STUDENT MENU  –  {student.name}  (ID: {student.id})")
@@ -83,19 +78,25 @@ class SubjectController:
 
             choice = prompt("Select option")
 
-            if   choice == "1": self._cli_enrol(student)
-            elif choice == "2": self._cli_remove(student)
-            elif choice == "3": self._cli_view(student)
-            elif choice == "4": self._cli_change_password(student)
+            if   choice == "1": 
+                self._cli_enrol(student)
+            elif choice == "2": 
+                self._cli_remove(student)
+            elif choice == "3": 
+                self._cli_view(student)
+            elif choice == "4": 
+                self._cli_change_password(student)
             elif choice == "5":
                 info("Logged out.")
                 return
             else:
                 warn("Invalid option. Please enter 1–5.")
 
-    # ── CLI flow handlers (use service methods) ───────────────────────────────
+    # ═════════════════════════════════════════════════════════════════════════
+    #  CLI Subject/Student Functions
+    # ═════════════════════════════════════════════════════════════════════════
 
-    def _cli_enrol(self, student: Student) -> None:
+    def _cli_enrol(self, student: Student):
         if len(student.subjects) >= Student.MAX_SUBJECTS:
             warn(f"Students are allowed to enrol in {Student.MAX_SUBJECTS} subjects only.")
             return
@@ -108,7 +109,8 @@ class SubjectController:
             f"{Student.MAX_SUBJECTS} subjects"
         )
 
-    def _cli_remove(self, student: Student) -> None:
+    #  CLI Subject Remove -----------------------------------------------------
+    def _cli_remove(self, student: Student):
         subjects = self.list_subjects(student)
         if not subjects:
             warn("You have no enrolled subjects to remove.")
@@ -133,7 +135,8 @@ class SubjectController:
             f"{Student.MAX_SUBJECTS} subjects"
         )
 
-    def _cli_view(self, student: Student) -> None:
+    #CLI Subject View ------------------------------------------------------------    
+    def _cli_view(self, student: Student):
         subjects = self.list_subjects(student)
 
         banner("YOUR ENROLMENTS")
@@ -152,7 +155,8 @@ class SubjectController:
                 f"Overall: {student.overall_grade}"
             )
 
-    def _cli_change_password(self, student: Student) -> None:
+    #CLI Student Change Password --------------------------------------------------
+    def _cli_change_password(self, student: Student):
         banner("CHANGE PASSWORD")
         print("  Updating Password")
         print("  Rules: uppercase start · 5+ letters · 3+ digits at end")

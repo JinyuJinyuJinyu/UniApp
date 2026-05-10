@@ -1,3 +1,8 @@
+"""CLIUniApp.py 
+
+Student Name: Sai Som Seng
+Student ID: 25724218"""
+
 """
 CLIUniApp.py – Command-Line University Application (entry point)
 =================================================================
@@ -20,13 +25,13 @@ from cli_view           import banner, divider, prompt, warn
 
 
 # ── shared application instances ──────────────────────────────────────────────
-DB                 = Database("students.data")
+DB = Database("students.data")
+
 student_controller = StudentController(DB)
 admin_controller   = AdminController(DB)
 
-
-def run_main_menu() -> None:
-    """Top-level University System menu — dispatches to controllers."""
+#Main Menu for University System
+def run_main_menu():
     while True:
         banner("CLIUNIAPP – UNIVERSITY ENROLMENT SYSTEM")
         print("  [1] Student subsystem")

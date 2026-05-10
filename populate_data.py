@@ -1,3 +1,8 @@
+"""populate_data.py 
+
+Student Name: Hang Wang
+Student ID: 14734281"""
+
 """
 populate_data.py – Seed students.data with sample records
 =========================================================

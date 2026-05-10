@@ -3,6 +3,10 @@
 **Assessment 1 – Part 2** | University of Technology Sydney, FEIT
 *Software Engineering Practice*
 
+Student Name: Jinyu Tian (25526361), Hang Wang (14734281), Sai Som Seng (25724218)
+Group: 09
+
+Current File Completed by - Jinyu Tian
 ---
 
 ## Architecture (MVC)

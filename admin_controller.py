@@ -1,3 +1,9 @@
+"""admin_controller.py 
+
+Student Name: Sai Som Seng
+Student ID: 25724218"""
+
+
 """
 admin_controller.py – Controller for admin operations
 ======================================================
@@ -28,44 +34,71 @@ class AdminController:
         self._db = db
 
     # ═════════════════════════════════════════════════════════════════════════
-    #  CREDENTIAL CHECKING
+    #  ADMIN PASSWORD CHECK
     # ═════════════════════════════════════════════════════════════════════════
 
-    @staticmethod
-    def check_login_credential(password: str) -> bool:
-        """
-        Verify the supplied password against the fixed admin credential.
-        Admin uses only a password (no email).
-        """
-        return password == _ADMIN_PASSWORD
+    #Verify the supplied password against the fixed admin credential. Admin uses only a password (no email).
+    def check_login_credential(self, password):
+        if password == _ADMIN_PASSWORD:
+            return True
+        else:
+            return False
 
     # ═════════════════════════════════════════════════════════════════════════
-    #  SERVICE METHODS — pure, reusable
+    #  ADMIN FUNCTIONS
     # ═════════════════════════════════════════════════════════════════════════
 
-    def view_all_students(self) -> list:
-        """Return all students from students.data."""
+    #Return all students from "students.data"
+    def view_all_students(self):
         return self._db.read_all_students()
 
-    def group_by_grade(self) -> dict:
-        """
-        Group students by their OVERALL grade.
-        Each student appears under exactly one grade key (HD/D/C/P/Z).
-        Students with no enrolments are NOT included.
-        """
-        groups: dict[str, list] = {"HD": [], "D": [], "C": [], "P": [], "Z": []}
+    # ═════════════════════════════════════════════════════════════════════════
+    #  Grouping by Overall Grade
+    # ═════════════════════════════════════════════════════════════════════════
+
+    #Group students by their OVERALL grade
+    #Each student appears under exactly one grade key (HD/D/C/P/Z)
+    #Students with no enrolments are NOT included
+
+    def group_by_grade(self):
+        groups = {"HD": [], 
+                    "D": [], 
+                    "C": [], 
+                    "P": [], 
+                    "Z": []}
         for student in self._db.read_all_students():
             if not student.subjects:
                 continue
-            groups[student.overall_grade].append(student)
-        return {g: lst for g, lst in groups.items() if lst}
 
-    def group_by_pass_fail(self) -> dict:
-        """
-        Partition students into PASS / FAIL based on AVERAGE mark >= 50.
-        Students with no enrolments are NOT included.
-        """
-        result: dict[str, list] = {"PASS": [], "FAIL": []}
+            grade = student.overall_grade
+
+            if grade == "HD":
+                groups["HD"].append(student)
+            elif grade == "D":
+                groups["D"].append(student)
+            elif grade == "C":
+                groups["C"].append(student)
+            elif grade == "P":
+                groups["P"].append(student)
+            else:
+                groups["Z"].append(student)
+        
+        non_empty_groups = {}
+
+        for grade in groups:
+            if len(groups[grade]) > 0:
+                non_empty_groups[grade] = groups[grade]
+        return non_empty_groups
+    
+    # ═════════════════════════════════════════════════════════════════════════
+    #  Grouping by PASS OR FAIL
+    # ═════════════════════════════════════════════════════════════════════════
+
+    #Separating students into PASS / FAIL based on AVERAGE mark >= 50
+    #Students with no enrolments are NOT included
+    def group_by_pass_fail(self):
+        result = {"PASS": [], 
+                                   "FAIL": []}
         for student in self._db.read_all_students():
             if not student.subjects:
                 continue
@@ -74,27 +107,39 @@ class AdminController:
             else:
                 result["FAIL"].append(student)
         return result
+    
+    # ═════════════════════════════════════════════════════════════════════════
+    #  Deleting Student/s
+    # ═════════════════════════════════════════════════════════════════════════
 
-    def remove_student(self, student_id: str) -> bool:
-        """Delete the student with the given ID. Returns True if found."""
+    #Delete the student with the given ID. Returns True if found
+    def remove_student(self, student_id):
         return self._db.delete_student(student_id)
 
-    def clear_student_data(self) -> bool:
-        """Wipe the entire students.data file."""
+    # ═════════════════════════════════════════════════════════════════════════
+    #  Clearing Students
+    # ═════════════════════════════════════════════════════════════════════════
+
+    #Wipe the entire students.data file
+    def clear_student_data(self):
         return self._db.clear_all()
 
     # ═════════════════════════════════════════════════════════════════════════
-    #  CLI MENU
+    #  CLI Admin MENU Screen
     # ═════════════════════════════════════════════════════════════════════════
 
-    def run_admin_subsystem(self) -> None:
-        """Authenticate then enter the admin operations menu."""
+    #Authenticate then enter the admin operations menu
+    def run_admin_subsystem(self):
         if not self._cli_login():
             return
         self._run_admin_menu()
 
-    def _cli_login(self) -> bool:
-        """Returns True if admin credentials were correct."""
+    # ═════════════════════════════════════════════════════════════════════════
+    #  Admin Login and Systems
+    # ═════════════════════════════════════════════════════════════════════════
+
+    #Returns True if admin credentials are correct
+    def _cli_login(self):
         banner("ADMIN LOGIN")
         password = prompt("Admin password")
         if not self.check_login_credential(password):
@@ -103,8 +148,8 @@ class AdminController:
         success("Admin access granted.")
         return True
 
-    def _run_admin_menu(self) -> None:
-        """Admin operations menu."""
+    #Admin operations menu
+    def _run_admin_menu(self):
         while True:
             banner("ADMIN MENU")
             print("  [1] View all students")
@@ -117,20 +162,27 @@ class AdminController:
 
             choice = prompt("Select option")
 
-            if   choice == "1": self._cli_view_all()
-            elif choice == "2": self._cli_group_by_grade()
-            elif choice == "3": self._cli_partition_pass_fail()
-            elif choice == "4": self._cli_remove_student()
-            elif choice == "5": self._cli_clear_data()
+            if   choice == "1": 
+                self._cli_view_all()
+            elif choice == "2": 
+                self._cli_group_by_grade()
+            elif choice == "3": 
+                self._cli_partition_pass_fail()
+            elif choice == "4": 
+                self._cli_remove_student()
+            elif choice == "5": 
+                self._cli_clear_data()
             elif choice == "6":
                 info("Admin logged out.")
                 return
             else:
                 warn("Invalid option. Please enter 1–6.")
 
-    # ── CLI flow handlers (use service methods) ───────────────────────────────
+    # ═════════════════════════════════════════════════════════════════════════
+    #  CLI functions
+    # ═════════════════════════════════════════════════════════════════════════
 
-    def _cli_view_all(self) -> None:
+    def _cli_view_all(self):
         banner("ALL REGISTERED STUDENTS")
         students = self.view_all_students()
         if not students:
@@ -145,7 +197,7 @@ class AdminController:
         divider()
         print(f"  Total students: {len(students)}")
 
-    def _cli_group_by_grade(self) -> None:
+    def _cli_group_by_grade(self):
         banner("STUDENTS GROUPED BY GRADE")
         groups = self.group_by_grade()
         if not groups:
@@ -162,7 +214,7 @@ class AdminController:
                 for s in students:
                     print(f"    {s.short_repr()}")
 
-    def _cli_partition_pass_fail(self) -> None:
+    def _cli_partition_pass_fail(self):
         banner("STUDENTS BY PASS / FAIL")
         parts = self.group_by_pass_fail()
         for category in ["PASS", "FAIL"]:
@@ -175,7 +227,7 @@ class AdminController:
                 for s in students:
                     print(f"    {s.short_repr()}")
 
-    def _cli_remove_student(self) -> None:
+    def _cli_remove_student(self):
         student_id = prompt("Enter Student ID to remove")
         if not student_id:
             return
@@ -184,7 +236,7 @@ class AdminController:
         else:
             error(f"Student ID '{student_id}' not found.")
 
-    def _cli_clear_data(self) -> None:
+    def _cli_clear_data(self):
         banner("CLEAR ALL STUDENT DATA")
         warn("This will permanently delete ALL student records!")
         confirm = prompt("Are you sure you want to clear the database? (Y)ES/(N)O")

@@ -1,3 +1,8 @@
+"""student.py 
+
+Student Name: Hang Wang
+Student ID: 14734281"""
+
 """
 student.py – Student model for CLIUniApp / GUIUniApp
 =====================================================
