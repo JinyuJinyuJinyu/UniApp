@@ -347,7 +347,10 @@ class EnrolmentWindow:
             self._subject_win.focus()
             return
         sub_root = tk.Toplevel(self.root)
-        self._subject_win = SubjectWindow(sub_root, self.student)
+        # Hand the subject window a callback so it can poke our counter
+        # whenever it removes a subject.
+        self._subject_win = SubjectWindow(sub_root, self.student,
+                                          on_change=self._refresh)
 
     def _logout(self):
         if self._subject_win is not None and self._subject_win.is_open():
@@ -362,10 +365,11 @@ class EnrolmentWindow:
 
 class SubjectWindow:
 
-    def __init__(self, root: tk.Toplevel, student: Student):
-        self.root    = root
-        self.student = student
-        self._open   = True
+    def __init__(self, root: tk.Toplevel, student: Student, on_change=None):
+        self.root      = root
+        self.student   = student
+        self.on_change = on_change
+        self._open     = True
         self._build_ui()
         self.root.protocol("WM_DELETE_WINDOW", self.close)
 
@@ -465,6 +469,9 @@ class SubjectWindow:
         sid = sel[0]
         if subject_controller.remove(self.student, sid):
             self._populate_tree()
+            # Let the enrolment window know its counter needs refreshing.
+            if self.on_change:
+                self.on_change()
 
 
 # ----- Entry point ----------------------------------------------------------
