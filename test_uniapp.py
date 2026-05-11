@@ -1,5 +1,5 @@
 """
-test_uniapp.py – Automated test suite for CLIUniApp / GUIUniApp
+test_uniapp.py - Automated test suite for CLIUniApp / GUIUniApp
 ===============================================================
 Covers the full MVC stack:
   - Models      : Subject, Student, Database
@@ -122,6 +122,64 @@ class _TempDb(unittest.TestCase):
 
     def tearDown(self):
         shutil.rmtree(self.tmp)
+
+
+class TestDatabase(_TempDb):
+    """Direct DB-level tests for query/save/delete behaviour."""
+
+    def _make_student(self, name="Jane Doe",
+                            email="jane.doe@university.com",
+                            password="Helloworld123",
+                            student_id=None):
+        return Student(name=name, email=email,
+                       password=password, student_id=student_id)
+
+    def test_find_by_email_returns_student(self):
+        stu = self._make_student()
+        self.db.save_student(stu)
+        found = self.db.find_by_email("jane.doe@university.com")
+        self.assertIsNotNone(found)
+        self.assertEqual(found.id, stu.id)
+        self.assertEqual(found.name, "Jane Doe")
+
+    def test_find_by_email_case_insensitive(self):
+        self.db.save_student(self._make_student())
+        self.assertIsNotNone(self.db.find_by_email("JANE.DOE@university.com"))
+
+    def test_find_by_email_missing_returns_none(self):
+        self.assertIsNone(self.db.find_by_email("nobody@university.com"))
+
+    def test_save_student_overwrites_existing_id(self):
+        stu = self._make_student(student_id="000123")
+        self.db.save_student(stu)
+        # Mutate and re-save with same ID
+        stu.name = "Jane Renamed"
+        stu.subjects = [Subject(subject_id="001", mark=80)]
+        self.db.save_student(stu)
+
+        all_students = self.db.read_all_students()
+        self.assertEqual(len(all_students), 1)        # not duplicated
+        self.assertEqual(all_students[0].name, "Jane Renamed")
+        self.assertEqual(len(all_students[0].subjects), 1)
+
+    def test_save_student_appends_new(self):
+        self.db.save_student(self._make_student(
+            email="a.a@university.com", student_id="000001"))
+        self.db.save_student(self._make_student(
+            email="b.b@university.com", student_id="000002"))
+        self.assertEqual(len(self.db.read_all_students()), 2)
+
+    def test_delete_student_returns_false_on_miss(self):
+        self.db.save_student(self._make_student(student_id="000123"))
+        self.assertFalse(self.db.delete_student("999999"))
+        # Untouched
+        self.assertEqual(len(self.db.read_all_students()), 1)
+
+    def test_delete_student_returns_true_on_hit(self):
+        stu = self._make_student(student_id="000123")
+        self.db.save_student(stu)
+        self.assertTrue(self.db.delete_student("000123"))
+        self.assertEqual(len(self.db.read_all_students()), 0)
 
 
 class TestStudentController(_TempDb):
@@ -306,6 +364,7 @@ if __name__ == "__main__":
     for cls in [TestSubject,
                 TestStudentValidation,
                 TestStudentDerivedProperties,
+                TestDatabase,
                 TestStudentController,
                 TestSubjectController,
                 TestAdminController]:

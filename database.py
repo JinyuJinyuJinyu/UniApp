@@ -4,7 +4,7 @@ Student Name: Hang Wang
 Student ID: 14734281"""
 
 """
-database.py – Data-access layer for CLIUniApp / GUIUniApp
+database.py - Data-access layer for CLIUniApp / GUIUniApp
 =========================================================
 Centralises all reading and writing of students.data (JSON format).
 
@@ -49,19 +49,6 @@ class Database:
         """Return the Student whose email matches (case-insensitive), or None."""
         for student in self.read_all_students():
             if student.email.lower() == email.lower():
-                return student
-        return None
-
-    def find_by_name(self, name: str) -> Student | None:
-        """Return the first Student whose full name matches (case-insensitive), or None."""
-        for student in self.read_all_students():
-            if student.name.lower() == name.lower():
-                return student
-        return None
-
-    def find_by_id(self, student_id: str) -> Student | None:
-        for student in self.read_all_students():
-            if student.id == student_id:
                 return student
         return None
 

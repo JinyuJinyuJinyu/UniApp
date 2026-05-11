@@ -4,7 +4,7 @@ Student Name: Sai Som Seng
 Student ID: 25724218"""
 
 """
-subject_controller.py – Controller for subject enrolment operations
+subject_controller.py - Controller for subject enrolment operations
 ===================================================================
 Coordinates Subject lifecycle for a logged-in Student:
   * enrol in a new subject (auto-generated, max 4)
@@ -68,7 +68,7 @@ class SubjectController:
     def run_subject_menu(self, student: Student):
         """Subject Enrolment menu — runs until logout."""
         while True:
-            banner(f"STUDENT MENU  –  {student.name}  (ID: {student.id})")
+            banner(f"STUDENT MENU  -  {student.name}  (ID: {student.id})")
             print("  [1] Enrol in a subject")
             print("  [2] Remove a subject")
             print("  [3] View enrolled subjects")
@@ -90,7 +90,7 @@ class SubjectController:
                 info("Logged out.")
                 return
             else:
-                warn("Invalid option. Please enter 1–5.")
+                warn("Invalid option. Please enter 1-5.")
 
     # ═════════════════════════════════════════════════════════════════════════
     #  CLI Subject/Student Functions

@@ -4,7 +4,7 @@ Student Name: Sai Som Seng
 Student ID: 25724218"""
 
 """
-CLIUniApp.py – Command-Line University Application (entry point)
+CLIUniApp.py - Command-Line University Application (entry point)
 =================================================================
 Run with:   python CLIUniApp.py
 
@@ -33,7 +33,7 @@ admin_controller   = AdminController(DB)
 #Main Menu for University System
 def run_main_menu():
     while True:
-        banner("CLIUNIAPP – UNIVERSITY ENROLMENT SYSTEM")
+        banner("CLIUNIAPP - UNIVERSITY ENROLMENT SYSTEM")
         print("  [1] Student subsystem")
         print("  [2] Admin subsystem")
         print("  [3] Exit")
@@ -49,7 +49,7 @@ def run_main_menu():
             print("\n  Goodbye!\n")
             sys.exit(0)
         else:
-            warn("Invalid option. Please enter 1–3.")
+            warn("Invalid option. Please enter 1-3.")
 
 
 if __name__ == "__main__":

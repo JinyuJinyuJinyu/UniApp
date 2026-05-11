@@ -4,7 +4,7 @@ Student Name: Hang Wang
 Student ID: 14734281"""
 
 """
-populate_data.py – Seed students.data with sample records
+populate_data.py - Seed students.data with sample records
 =========================================================
 Generates a configurable number of valid Student records (with random
 subjects) and writes them to students.data via the Database class.
@@ -58,7 +58,7 @@ def random_password() -> str:
 
 
 def make_student(used_emails: set, used_ids: set) -> Student:
-    """Create a single Student with a unique email, ID, and 0–4 subjects."""
+    """Create a single Student with a unique email, ID, and 0-4 subjects."""
     while True:
         first = random.choice(FIRST_NAMES)
         last  = random.choice(LAST_NAMES)
@@ -81,7 +81,7 @@ def make_student(used_emails: set, used_ids: set) -> Student:
         subjects   = [],
     )
 
-    # ----Give each student 0–4 unique subjects------------------------
+    # ----Give each student 0-4 unique subjects------------------------
     subject_count = random.randint(0, Student.MAX_SUBJECTS)
     used_subject_ids: set = set()
     for _ in range(subject_count):
