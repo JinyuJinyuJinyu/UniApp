@@ -1,18 +1,11 @@
-"""database.py 
+"""database.py
 
 Student Name: Hang Wang
-Student ID: 14734281"""
-
+Student ID: 14734281
 """
-database.py - Data-access layer for CLIUniApp / GUIUniApp
-=========================================================
-Centralises all reading and writing of students.data (JSON format).
 
-Per the assignment spec:
-  - check that students.data exists; create it if it doesn't
-  - read and write Student objects from/to students.data
-  - clear all objects from students.data
-"""
+# All reads/writes to students.data go through this class.
+# The file is just a JSON array of student dicts.
 
 import json
 import os
@@ -26,15 +19,13 @@ class Database:
         self._ensure_file()
 
     def _ensure_file(self) -> None:
-        """Ensure students.data exists; create it as an empty JSON array if not."""
+        # If the data file isn't there yet, drop in an empty list so the
+        # rest of the code can assume it exists.
         if not os.path.exists(self.filename):
             with open(self.filename, "w") as f:
                 json.dump([], f)
 
-    # ── read ──────────────────────────────────────────────────────────────────
-
     def read_all_students(self) -> list:
-        """Return all Student objects stored in students.data."""
         try:
             with open(self.filename, "r") as f:
                 content = f.read().strip()
@@ -46,24 +37,20 @@ class Database:
         return [Student.from_dict(d) for d in data]
 
     def find_by_email(self, email: str) -> Student | None:
-        """Return the Student whose email matches (case-insensitive), or None."""
+        # Case-insensitive lookup. Returns None if no match.
         for student in self.read_all_students():
             if student.email.lower() == email.lower():
                 return student
         return None
 
-    # ── write ─────────────────────────────────────────────────────────────────
-
     def write_all_students(self, students: list) -> None:
-        """Single write path — overwrites students.data with provided list."""
+        # Everything writes through here so the format stays consistent.
         with open(self.filename, "w") as f:
             json.dump([s.to_dict() for s in students], f, indent=2)
 
     def save_student(self, student: Student) -> None:
-        """
-        Persist a student. If a student with the same ID exists they are
-        replaced; otherwise the student is appended.
-        """
+        # Replace if an entry with the same ID is already there,
+        # otherwise just tack it on the end.
         students = self.read_all_students()
         for i, s in enumerate(students):
             if s.id == student.id:
@@ -73,10 +60,7 @@ class Database:
         students.append(student)
         self.write_all_students(students)
 
-    # ── delete ────────────────────────────────────────────────────────────────
-
     def delete_student(self, student_id: str) -> bool:
-        """Remove the student with the given ID. Returns True if found."""
         students = self.read_all_students()
         filtered = [s for s in students if s.id != student_id]
         if len(filtered) == len(students):
@@ -85,15 +69,12 @@ class Database:
         return True
 
     def clear_all(self) -> bool:
-        """Empty the students.data file."""
         try:
             with open(self.filename, "w") as f:
                 json.dump([], f)
             return True
         except IOError:
             return False
-
-    # ── query helpers ─────────────────────────────────────────────────────────
 
     def email_exists(self, email: str) -> bool:
         return self.find_by_email(email) is not None

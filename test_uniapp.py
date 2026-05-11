@@ -1,12 +1,8 @@
 """
-test_uniapp.py - Automated test suite for CLIUniApp / GUIUniApp
-===============================================================
-Covers the full MVC stack:
-  - Models      : Subject, Student, Database
-  - Controllers : StudentController, SubjectController, AdminController
+test_uniapp.py - tests for the CLI / GUI enrolment app.
 
-Run with:
-    python test_uniapp.py
+Covers the models (Subject, Student, Database) and the three
+controllers. Run with: python test_uniapp.py
 """
 
 import sys, os, unittest, tempfile, shutil
@@ -27,9 +23,7 @@ from subject_controller import SubjectController
 from admin_controller   import AdminController
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-#  MODEL TESTS
-# ═══════════════════════════════════════════════════════════════════════════════
+# ----- Model tests ----------------------------------------------------------
 
 class TestSubject(unittest.TestCase):
 
@@ -55,7 +49,8 @@ class TestSubject(unittest.TestCase):
 
 
 class TestStudentValidation(unittest.TestCase):
-    """Tightened password regex per spec."""
+    # Checks the email/password regex against the kinds of strings
+    # mentioned in the brief.
 
     def test_email_valid(self):
         for e in ["john.smith@university.com",
@@ -85,7 +80,7 @@ class TestStudentValidation(unittest.TestCase):
 
 
 class TestStudentDerivedProperties(unittest.TestCase):
-    """average_mark / overall_grade / is_pass — required by spec for admin views."""
+    # average_mark / overall_grade / is_pass - the admin views rely on these.
 
     def _make(self):
         return Student(name="Test", email="t.t@university.com",
@@ -109,12 +104,11 @@ class TestStudentDerivedProperties(unittest.TestCase):
         self.assertTrue(s.is_pass)
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-#  CONTROLLER TESTS — The new layer
-# ═══════════════════════════════════════════════════════════════════════════════
+# ----- Controller tests -----------------------------------------------------
 
 class _TempDb(unittest.TestCase):
-    """Mixin: isolated Database in a temp dir."""
+    # Gives each test its own Database in a temp directory so they
+    # don't trample on the real students.data file.
 
     def setUp(self):
         self.tmp = tempfile.mkdtemp()
@@ -125,7 +119,7 @@ class _TempDb(unittest.TestCase):
 
 
 class TestDatabase(_TempDb):
-    """Direct DB-level tests for query/save/delete behaviour."""
+    # Direct hits on the Database class - no controllers in between.
 
     def _make_student(self, name="Jane Doe",
                             email="jane.doe@university.com",
@@ -152,13 +146,13 @@ class TestDatabase(_TempDb):
     def test_save_student_overwrites_existing_id(self):
         stu = self._make_student(student_id="000123")
         self.db.save_student(stu)
-        # Mutate and re-save with same ID
+        # Change the name + add a subject, then save again with the same ID.
         stu.name = "Jane Renamed"
         stu.subjects = [Subject(subject_id="001", mark=80)]
         self.db.save_student(stu)
 
         all_students = self.db.read_all_students()
-        self.assertEqual(len(all_students), 1)        # not duplicated
+        self.assertEqual(len(all_students), 1)        # should replace, not duplicate
         self.assertEqual(all_students[0].name, "Jane Renamed")
         self.assertEqual(len(all_students[0].subjects), 1)
 
@@ -172,7 +166,7 @@ class TestDatabase(_TempDb):
     def test_delete_student_returns_false_on_miss(self):
         self.db.save_student(self._make_student(student_id="000123"))
         self.assertFalse(self.db.delete_student("999999"))
-        # Untouched
+        # Nothing should have been removed.
         self.assertEqual(len(self.db.read_all_students()), 1)
 
     def test_delete_student_returns_true_on_hit(self):
@@ -195,7 +189,7 @@ class TestStudentController(_TempDb):
         self.assertIsNone(err)
         self.assertIsNotNone(s)
         self.assertEqual(s.name, "Jane Doe")
-        # verify it was persisted
+        # Make sure the new student was actually written to the file.
         self.assertTrue(self.db.email_exists("jane.doe@university.com"))
 
     def test_register_bad_email(self):
@@ -227,7 +221,8 @@ class TestStudentController(_TempDb):
 
     def test_login_unregistered(self):
         s, err = self.ctrl.login("nobody@university.com", "Helloworld123")
-        # Email format invalid → controller catches that first
+        # The email doesn't have firstname.lastname so the format check
+        # catches it before we even try to look it up.
         self.assertEqual(err, ERR_BAD_EMAIL_FORMAT)
 
     def test_login_email_case_insensitive(self):
@@ -252,14 +247,14 @@ class TestSubjectController(_TempDb):
         self.assertIsNotNone(new_subj)
         self.assertEqual(len(self.student.subjects), before + 1)
 
-        # Verify persisted
+        # And the new subject should be in the file too, not just in memory.
         loaded = self.db.find_by_email(self.student.email)
         self.assertEqual(len(loaded.subjects), before + 1)
 
     def test_enrol_blocks_at_max(self):
         for _ in range(Student.MAX_SUBJECTS):
             self.subj_ctrl.enrol(self.student)
-        # 5th attempt
+        # The 5th call should be rejected.
         result = self.subj_ctrl.enrol(self.student)
         self.assertIsNone(result)
         self.assertEqual(len(self.student.subjects), Student.MAX_SUBJECTS)
@@ -270,7 +265,8 @@ class TestSubjectController(_TempDb):
         self.assertEqual(len(self.student.subjects), 0)
 
     def test_remove_accepts_unpadded_id(self):
-        # enrol with a known ID via direct manipulation, then remove using "42"
+        # Drop a subject with id "042" in, then try removing it with "42"
+        # to confirm the controller pads short IDs out for us.
         from subject import Subject as Subj
         self.student.subjects = [Subj(subject_id="042", mark=60)]
         self.db.save_student(self.student)
@@ -288,24 +284,26 @@ class TestSubjectController(_TempDb):
         self.assertFalse(self.subj_ctrl.change_password(self.student, "Hello123"))
 
     def test_list_subjects_refreshes_from_db(self):
-        # Enrol, then change DB underneath (simulate other window)
+        # Enrol once, then check list_subjects reports the same count
+        # as what's on disk (pretending another window is open).
         self.subj_ctrl.enrol(self.student)
-        # Local student object thinks it has 1; DB has 1 — verify list is consistent
         listed = self.subj_ctrl.list_subjects(self.student)
         self.assertEqual(len(listed), 1)
 
 
 class TestAdminController(_TempDb):
-    """Spec-correct grouping rules verified at the controller layer."""
+    # Checks the grouping / pass-fail rules used by the admin views.
 
     def setUp(self):
         super().setUp()
         self.admin = AdminController(self.db)
 
+        # Three students with predictable averages so we know exactly
+        # which bucket each one should end up in.
         for name, email, pwd, marks in [
-            ("Alice A", "alice.a@university.com", "Aliceabc123", [90, 80, 70, 60]),  # avg=75 → D
-            ("Bob B",   "bob.b@university.com",   "Bobbobby123", [40, 45, 50, 55]),  # avg=47.5 → Z
-            ("Carol C", "carol.c@university.com", "Carolcdef123",[60, 65, 70, 75]),  # avg=67.5 → C
+            ("Alice A", "alice.a@university.com", "Aliceabc123", [90, 80, 70, 60]),  # avg 75  -> D
+            ("Bob B",   "bob.b@university.com",   "Bobbobby123", [40, 45, 50, 55]),  # avg 47.5 -> Z
+            ("Carol C", "carol.c@university.com", "Carolcdef123",[60, 65, 70, 75]),  # avg 67.5 -> C
         ]:
             stu = Student(name=name, email=email, password=pwd)
             stu.subjects = [Subject(subject_id=f"{i+1:03d}", mark=m)
@@ -330,7 +328,7 @@ class TestAdminController(_TempDb):
 
     def test_partition_uses_average(self):
         parts = self.admin.group_by_pass_fail()
-        self.assertEqual(len(parts["PASS"]), 2)  # Alice + Carol
+        self.assertEqual(len(parts["PASS"]), 2)  # Alice and Carol
         self.assertEqual(len(parts["FAIL"]), 1)  # Bob
 
     def test_no_subjects_excluded_from_groups(self):
@@ -339,7 +337,7 @@ class TestAdminController(_TempDb):
         self.db.save_student(empty)
         groups = self.admin.group_by_grade()
         flat = [s for v in groups.values() for s in v]
-        self.assertEqual(len(flat), 3)  # empty excluded
+        self.assertEqual(len(flat), 3)  # the empty student shouldn't appear
         parts = self.admin.group_by_pass_fail()
         self.assertEqual(len(parts["PASS"]) + len(parts["FAIL"]), 3)
 
@@ -354,9 +352,7 @@ class TestAdminController(_TempDb):
         self.assertEqual(len(self.db.read_all_students()), 0)
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-#  ENTRY
-# ═══════════════════════════════════════════════════════════════════════════════
+# ----- Entry point ----------------------------------------------------------
 
 if __name__ == "__main__":
     loader = unittest.TestLoader()

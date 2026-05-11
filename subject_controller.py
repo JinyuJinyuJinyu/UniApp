@@ -1,22 +1,14 @@
-"""Subject_controller.py 
+"""Subject_controller.py
 
 Student Name: Sai Som Seng
-Student ID: 25724218"""
-
+Student ID: 25724218
 """
-subject_controller.py - Controller for subject enrolment operations
-===================================================================
-Coordinates Subject lifecycle for a logged-in Student:
-  * enrol in a new subject (auto-generated, max 4)
-  * remove a subject by ID
-  * list current enrolments
 
-Service methods (pure) are reusable by both CLI and GUI.
-Menu methods (run_subject_menu) drive the CLI-only loop.
-"""
+# Handles the subject side of things for a logged-in student:
+# enrol, remove, list, and change password. The plain methods are
+# also used from the GUI, the run_subject_menu loop is just for CLI.
 
 from student  import Student
-from subject  import Subject
 from database import Database
 from cli_view import (banner, divider, prompt, info, warn, error, success)
 
@@ -26,47 +18,38 @@ class SubjectController:
     def __init__(self, db: Database):
         self._db = db
 
-    # ═════════════════════════════════════════════════════════════════════════
-    #  Subject Functions
-    # ═════════════════════════════════════════════════════════════════════════
-
-    #Enrols the student
-    #Returns a new subject or NONE if MAXED_SUBJECTS (4/4)
     def enrol(self, student):
+        # Returns the new subject, or None if the student already has 4.
         subject = student.enrol()
         if subject is None:
             return None
         self._db.save_student(student)
         return subject
 
-    #Removing a subject by ID - Accepts both 3-digits and 2-digits; for example - ('011') and ('11')
     def remove(self, student, subject_id):
+        # zfill so the user can type "11" or "011" and both work.
         sid = subject_id.strip().zfill(3)
         if not student.remove_subject(sid):
             return False
         self._db.save_student(student)
         return True
 
-    #Return/List the current list of enrolled subjects 
     def list_subjects(self, student):
+        # Pull a fresh copy from disk in case another window changed things.
         fresh = self._db.find_by_email(student.email)
         if fresh is not None:
             student.subjects = fresh.subjects
         return student.subjects
 
-    #Update the student's new password with validation check
     def change_password(self, student, new_password):
         if not student.change_password(new_password):
             return False
         self._db.save_student(student)
         return True
 
-    # ═════════════════════════════════════════════════════════════════════════
-    #  Subject Menu
-    # ═════════════════════════════════════════════════════════════════════════
+    # CLI menu loop and helpers below.
 
     def run_subject_menu(self, student: Student):
-        """Subject Enrolment menu — runs until logout."""
         while True:
             banner(f"STUDENT MENU  -  {student.name}  (ID: {student.id})")
             print("  [1] Enrol in a subject")
@@ -78,23 +61,19 @@ class SubjectController:
 
             choice = prompt("Select option")
 
-            if   choice == "1": 
+            if   choice == "1":
                 self._cli_enrol(student)
-            elif choice == "2": 
+            elif choice == "2":
                 self._cli_remove(student)
-            elif choice == "3": 
+            elif choice == "3":
                 self._cli_view(student)
-            elif choice == "4": 
+            elif choice == "4":
                 self._cli_change_password(student)
             elif choice == "5":
                 info("Logged out.")
                 return
             else:
                 warn("Invalid option. Please enter 1-5.")
-
-    # ═════════════════════════════════════════════════════════════════════════
-    #  CLI Subject/Student Functions
-    # ═════════════════════════════════════════════════════════════════════════
 
     def _cli_enrol(self, student: Student):
         if len(student.subjects) >= Student.MAX_SUBJECTS:
@@ -109,7 +88,6 @@ class SubjectController:
             f"{Student.MAX_SUBJECTS} subjects"
         )
 
-    #  CLI Subject Remove -----------------------------------------------------
     def _cli_remove(self, student: Student):
         subjects = self.list_subjects(student)
         if not subjects:
@@ -135,7 +113,6 @@ class SubjectController:
             f"{Student.MAX_SUBJECTS} subjects"
         )
 
-    #CLI Subject View ------------------------------------------------------------    
     def _cli_view(self, student: Student):
         subjects = self.list_subjects(student)
 
@@ -155,7 +132,6 @@ class SubjectController:
                 f"Overall: {student.overall_grade}"
             )
 
-    #CLI Student Change Password --------------------------------------------------
     def _cli_change_password(self, student: Student):
         banner("CHANGE PASSWORD")
         print("  Updating Password")
@@ -169,7 +145,7 @@ class SubjectController:
             )
             return
 
-        # Confirm — loop on mismatch
+        # Keep asking until the two entries match. Maybe cap the retries one day.
         while True:
             confirm = prompt("Confirm password")
             if confirm == new_password:

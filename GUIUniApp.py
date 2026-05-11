@@ -1,25 +1,20 @@
-"""subject.py 
+"""GUIUniApp.py
 
-Student Name: Jinyu Tian 
-Student ID: 25526361"""
-
+Student Name: Jinyu Tian
+Student ID: 25526361
 """
-GUIUniApp.py - Graphical University Enrolment Application
-=========================================================
-Per the assignment marking scheme, GUIUniApp provides FOUR distinct windows:
 
-  1. Login Window       - main window; reads students.data via StudentController
-  2. Enrolment Window   - action panel: enrol new subjects (max 4)
-  3. Subject Window     - list of enrolled subjects with marks & grades
-  4. Exception Window   - modal dialog for format errors and overflow
-
-The GUI is a pure View layer — all data operations go through the
-StudentController and SubjectController service methods. tkinter widgets
-never touch the Database directly.
-
-Run with:
-    python GUIUniApp.py
-"""
+# Tkinter front-end for the enrolment system. There are four windows
+# in total:
+#   1. Login        - the main window the app starts in
+#   2. Enrolment    - opens after login; lets the student enrol in subjects
+#   3. Subjects     - shows the student's enrolments with marks/grades
+#   4. Exception    - a modal popup used for all the error/warning messages
+#
+# Tkinter widgets never call Database directly, all data access goes
+# through the controllers so the GUI and CLI behave the same way.
+#
+# Run with:  python GUIUniApp.py
 
 import tkinter as tk
 from tkinter import ttk
@@ -34,12 +29,13 @@ from student_controller import (
 from subject_controller import SubjectController
 
 
-# ── shared controllers (one Database, shared by both controllers) ────────────
+# Both controllers share one Database instance.
 DB                  = Database("students.data")
 student_controller  = StudentController(DB)
 subject_controller  = SubjectController(DB)
 
-# ── colour palette ────────────────────────────────────────────────────────────
+# Colours used everywhere in the UI, pulled out as constants so they
+# stay consistent and are easy to tweak later.
 C_BG        = "#F0F4F8"
 C_PRIMARY   = "#1F5C99"
 C_SECONDARY = "#2980B9"
@@ -57,20 +53,11 @@ FONT_SMALL = ("Arial", 9)
 FONT_LABEL = ("Arial", 11, "bold")
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-#  WINDOW 4 — EXCEPTION WINDOW
-# ═══════════════════════════════════════════════════════════════════════════════
+# ----- Exception window -----------------------------------------------------
+# Generic popup used for empty fields, format errors, bad credentials,
+# and the "you've hit 4 subjects" warning.
 
 class ExceptionWindow(tk.Toplevel):
-    """
-    Custom modal exception/notification window.
-
-    Used for all error and warning notifications:
-      - empty login fields
-      - invalid email or password format
-      - incorrect credentials
-      - enrolment limit reached
-    """
 
     def __init__(self, parent, title: str, message: str, kind: str = "error"):
         super().__init__(parent)
@@ -121,12 +108,11 @@ class ExceptionWindow(tk.Toplevel):
         self.wait_window(self)
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-#  WINDOW 1 — LOGIN WINDOW (main)
-# ═══════════════════════════════════════════════════════════════════════════════
+# ----- Login window ---------------------------------------------------------
+# Main entry window. Calls StudentController.login() and hands off to
+# the enrolment window on success.
 
 class LoginWindow:
-    """Main window — authenticates via StudentController.login()."""
 
     def __init__(self, root: tk.Tk):
         self.root = root
@@ -192,18 +178,16 @@ class LoginWindow:
         self.root.bind("<Return>", lambda e: self._handle_login())
 
     def _handle_login(self):
-        """Authenticate via the controller and react to its result."""
         email    = self.email_entry.get().strip()
         password = self.pass_entry.get().strip()
 
-        # GUI-specific concern: empty fields
+        # Empty fields aren't worth bothering the controller with.
         if not email or not password:
             ExceptionWindow(self.root, "Missing Information",
                             "Please enter both your email and password.",
                             kind="warning")
             return
 
-        # Delegate to controller
         student, err = student_controller.login(email, password)
 
         if err == ERR_BAD_EMAIL_FORMAT:
@@ -224,23 +208,23 @@ class LoginWindow:
                             kind="error")
             return
 
-        # success — open enrolment window
+        # All good - hide the login window and open the enrolment window.
         self.root.withdraw()
         top = tk.Toplevel(self.root)
         EnrolmentWindow(top, student, on_close=self._on_close)
 
     def _on_close(self):
-        """Restore the Login Window when a child window closes."""
+        # When the enrolment window closes, bring the login window back
+        # and clear the password field so it's ready for the next user.
         self.root.deiconify()
         self.pass_entry.delete(0, "end")
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-#  WINDOW 2 — ENROLMENT WINDOW
-# ═══════════════════════════════════════════════════════════════════════════════
+# ----- Enrolment window -----------------------------------------------------
+# Opens after a successful login. From here the student can enrol in
+# subjects or open the subjects list.
 
 class EnrolmentWindow:
-    """Action panel: enrol new subjects via SubjectController.enrol()."""
 
     def __init__(self, root: tk.Toplevel, student: Student, on_close=None):
         self.root     = root
@@ -330,7 +314,7 @@ class EnrolmentWindow:
         self._refresh()
 
     def _refresh(self):
-        """Re-read student via the controller so UI shows persisted state."""
+        # Pull fresh data so the counter matches what's actually on disk.
         subjects = subject_controller.list_subjects(self.student)
         count = len(subjects)
         self.counter_var.set(
@@ -338,7 +322,6 @@ class EnrolmentWindow:
         )
 
     def _handle_enrol(self):
-        """Try to enrol via SubjectController.enrol()."""
         subject = subject_controller.enrol(self.student)
         if subject is None:
             ExceptionWindow(
@@ -374,12 +357,10 @@ class EnrolmentWindow:
             self.on_close()
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-#  WINDOW 3 — SUBJECT WINDOW
-# ═══════════════════════════════════════════════════════════════════════════════
+# ----- Subject window -------------------------------------------------------
+# Shows the student's current enrolments in a table, with a Remove button.
 
 class SubjectWindow:
-    """Lists enrolled subjects with their marks and grades."""
 
     def __init__(self, root: tk.Toplevel, student: Student):
         self.root    = root
@@ -486,9 +467,7 @@ class SubjectWindow:
             self._populate_tree()
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-#  MAIN ENTRY POINT
-# ═══════════════════════════════════════════════════════════════════════════════
+# ----- Entry point ----------------------------------------------------------
 
 def show_login_window() -> None:
     root = tk.Tk()

@@ -1,17 +1,11 @@
-"""Student_controller.py 
+"""Student_controller.py
 
 Student Name: Sai Som Seng
-Student ID: 25724218"""
-
+Student ID: 25724218
 """
-student_controller.py - Controller for student-account operations
-==================================================================
-Coordinates registration, login, and the top-level Student subsystem menu.
-On successful login it hands control to SubjectController.run_subject_menu().
 
-Service methods (pure) are reusable by both CLI and GUI.
-Menu methods drive the CLI-only loop.
-"""
+# Handles student registration and login. Once a student is logged
+# in, this hands off to SubjectController for the per-student menu.
 
 from student            import Student
 from database           import Database
@@ -19,11 +13,8 @@ from subject_controller import SubjectController
 from cli_view           import (banner, divider, prompt, info, warn, error, success)
 
 
-# Result tuple used by service methods so callers (CLI + GUI + tests) can
-# react to success or specific failure modes uniformly.
-#
-# Each service returns either (Student, None) on success, or (None, code) on
-# failure where 'code' is one of the constants below.
+# Error codes returned by register()/login(). The CLI and GUI both
+# check these so each can show its own messages.
 ERR_BAD_EMAIL_FORMAT    = "BAD_EMAIL_FORMAT"
 ERR_BAD_PASSWORD_FORMAT = "BAD_PASSWORD_FORMAT"
 ERR_DUPLICATE           = "DUPLICATE"
@@ -36,11 +27,6 @@ class StudentController:
         self._db = db
         self._subject_controller = SubjectController(db)
 
-    # ═════════════════════════════════════════════════════════════════════════
-    #  Student Functions
-    # ═════════════════════════════════════════════════════════════════════════
-
-    #Register a new student
     def register(self, name, email, password):
         if not Student.validate_email_pattern(email):
             return None, ERR_BAD_EMAIL_FORMAT
@@ -53,7 +39,6 @@ class StudentController:
         self._db.save_student(student)
         return student, None
 
-    #Authenticate a student login
     def login(self, email, password):
         if not Student.validate_email_pattern(email):
             return None, ERR_BAD_EMAIL_FORMAT
@@ -66,11 +51,8 @@ class StudentController:
 
         return candidate, None
 
-    # ═════════════════════════════════════════════════════════════════════════
-    #  CLI Student MENU Screen
-    # ═════════════════════════════════════════════════════════════════════════
+    # CLI-only menu below.
 
-    #Student subsystem menu 
     def run_student_subsystem(self):
         while True:
             banner("STUDENT SUBSYSTEM")
@@ -81,7 +63,7 @@ class StudentController:
 
             choice = prompt("Select option")
 
-            if   choice == "1": 
+            if   choice == "1":
                 self._cli_register()
             elif choice == "2":
                 student = self._cli_login()
@@ -92,12 +74,8 @@ class StudentController:
             else:
                 warn("Invalid option. Please enter 1-3.")
 
-    # ═════════════════════════════════════════════════════════════════════════
-    #  CLI Functions for Student 
-    # ═════════════════════════════════════════════════════════════════════════
-
-    #Flow Order > Email → Password → validate format → check duplicate → ask Name → save
     def _cli_register(self):
+        # Order: email -> password -> format checks -> duplicate check -> name -> save.
         banner("STUDENT REGISTRATION")
 
         email = prompt("Email (e.g. john.smith@university.com)")
@@ -121,20 +99,20 @@ class StudentController:
 
         info("email and password formats acceptable")
 
-        # Duplicate check
         existing = self._db.find_by_email(email)
         if existing is not None:
             error(f"Student {existing.name} already exists.")
             return
 
-        # Ask for name AFTER format and duplicate checks have passed
+        # Only ask for the name once everything else has passed.
         name = prompt("Full name")
         if not name:
             error("Name cannot be empty.")
             return
 
         student, err = self.register(name=name, email=email, password=password)
-        # All pre-conditions checked already, but guard anyway:
+        # Shouldn't actually trigger since we already checked everything,
+        # but it's cheap insurance.
         if err is not None:
             error(f"Registration failed: {err}")
             return
@@ -143,7 +121,6 @@ class StudentController:
         success(f"Enrolling Student {name}")
         success(f"Registration successful! Your student ID is: {student.id}")
 
-    #Login student
     def _cli_login(self):
         banner("STUDENT LOGIN")
 

@@ -1,22 +1,19 @@
-"""populate_data.py 
+"""populate_data.py
 
 Student Name: Hang Wang
-Student ID: 14734281"""
-
+Student ID: 14734281
 """
-populate_data.py - Seed students.data with sample records
-=========================================================
-Generates a configurable number of valid Student records (with random
-subjects) and writes them to students.data via the Database class.
 
-Run with:
-    python populate_data.py              # default: 15 students
-    python populate_data.py 30           # 30 students
-    python populate_data.py 20 --append  # add 20 without wiping existing data
-
-Every generated account satisfies the Student email and password patterns,
-so the seeded data is usable for login, admin views, and grade grouping.
-"""
+# Quick script to fill students.data with sample records so the admin
+# views and grade groupings have something to show.
+#
+# Examples:
+#     python populate_data.py              -> 15 students (default)
+#     python populate_data.py 30           -> 30 students
+#     python populate_data.py 20 --append  -> add 20 to the existing data
+#
+# Generated accounts follow the same email/password rules as the
+# normal register flow, so they can be logged into directly.
 
 import argparse
 import random
@@ -27,7 +24,7 @@ from subject  import Subject
 from database import Database
 
 
-#-------sample name pool------------------------------------------------
+# Just a pool of names to mix and match.
 FIRST_NAMES = [
     "David",  "Sarah",  "Liam",    "Emma",   "Noah",   "Olivia",
     "James",  "Ava",    "Lucas",   "Mia",    "Ethan",  "Isabella",
@@ -44,21 +41,17 @@ LAST_NAMES = [
 
 
 def random_password() -> str:
-    """
-    Build a password that passes Student.validate_password_pattern:
-      - starts with an uppercase letter
-      - at least 5 MORE letters after the leading uppercase (≥6 letters total)
-      - ends with 3+ digits
-    """
+    # Builds something the Student password regex will accept:
+    # uppercase letter, 5-8 lowercase letters, then 3-4 digits.
     letters  = "abcdefghijklmnopqrstuvwxyz"
-    body_len = random.randint(5, 8)                       # 5..8 lowercase letters
+    body_len = random.randint(5, 8)
     body     = "".join(random.choices(letters, k=body_len))
     digits   = "".join(random.choices("0123456789", k=random.randint(3, 4)))
     return random.choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ") + body + digits
 
 
 def make_student(used_emails: set, used_ids: set) -> Student:
-    """Create a single Student with a unique email, ID, and 0-4 subjects."""
+    # Keep rolling names until we get an email that isn't already taken.
     while True:
         first = random.choice(FIRST_NAMES)
         last  = random.choice(LAST_NAMES)
@@ -67,6 +60,7 @@ def make_student(used_emails: set, used_ids: set) -> Student:
             used_emails.add(email)
             break
 
+    # Same trick for the student ID.
     while True:
         sid = str(random.randint(1, 999_999)).zfill(6)
         if sid not in used_ids:
@@ -81,7 +75,7 @@ def make_student(used_emails: set, used_ids: set) -> Student:
         subjects   = [],
     )
 
-    # ----Give each student 0-4 unique subjects------------------------
+    # Give the student somewhere between 0 and 4 unique subjects.
     subject_count = random.randint(0, Student.MAX_SUBJECTS)
     used_subject_ids: set = set()
     for _ in range(subject_count):
@@ -96,7 +90,6 @@ def make_student(used_emails: set, used_ids: set) -> Student:
 
 
 def populate(count: int, append: bool, seed: int | None) -> None:
-    """Generate `count` students and write them to students.data."""
     if seed is not None:
         random.seed(seed)
 
@@ -107,13 +100,12 @@ def populate(count: int, append: bool, seed: int | None) -> None:
 
     existing: list = []
     if append:
+        # Don't reuse emails/IDs that are already in the file.
         existing = db.read_all_students()
-        #修改
         for s in existing:
             used_emails.add(s.email.lower())
             used_ids.add(s.id)
 
-    #new_students = [make_student(used_emails, used_ids) for _ in range(count)]-------修改
     new_students = []
     for _ in range(count):
         new_students.append(make_student(used_emails, used_ids))
@@ -127,6 +119,8 @@ def populate(count: int, append: bool, seed: int | None) -> None:
     if append and existing:
         print(f"   (kept {len(existing)} existing record(s), total {len(existing) + len(new_students)})")
 
+    # Show a couple of the new accounts so you don't have to crack
+    # open the file just to test logging in.
     print("\nSample credentials you can use to log in:")
     for s in new_students[:3]:
         print(f"  • {s.email:<40}  password: {s.password}")

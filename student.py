@@ -1,43 +1,28 @@
-"""student.py 
+"""student.py
 
 Student Name: Hang Wang
-Student ID: 14734281"""
-
+Student ID: 14734281
 """
-student.py - Student model for CLIUniApp / GUIUniApp
-=====================================================
-Spec compliance (Assessment 1 - Part 2):
-  - id       : 6-digit random ID, 000001-999999
-  - name     : full name
-  - email    : firstname.lastname@university.com
-  - password : starts with uppercase, ≥5 letters AFTER the uppercase, ≥3 digits
-  - subjects : list of Subject; max 4
-  - average_mark : average mark of all enrolled subjects (re-computed on enrol)
-  - overall_grade: grade derived from the average mark
-  - A student PASSES if average_mark >= 50
 
-Display format (matches sample I/O):
-  John Smith :: 673358 --> Email: john.smith@university.com
-"""
+# Student model. Holds the basic details plus the list of subjects
+# the student is currently enrolled in. Max 4 subjects per student.
 
 import re
 import random
 from subject import Subject
 
-#
+
 class Student:
 
     MAX_SUBJECTS = 4
 
-    # --patterns-------------------------------------
-
     # firstname.lastname@university.com
     _EMAIL_PATTERN = re.compile(r"^[a-zA-Z]+\.[a-zA-Z]+@university\.com$")
 
-    # Password: starts with ONE uppercase, then >=5 more letters,
-    # then >=3 digits. So minimum length is 1 + 5 + 3 = 9 characters.
-    # This makes "Hello123" (5 letters) INVALID — matching the assignment sample I/O,
-    # while "Helloworld123" (10 letters) is VALID.
+    # One uppercase letter, then at least 5 more letters, then 3+ digits.
+    # That makes the minimum length 9 characters. The brief's example
+    # "Hello123" only has 5 letters so it's intentionally rejected,
+    # while "Helloworld123" passes.
     _PASSWORD_PATTERN = re.compile(r"^[A-Z][a-zA-Z]{5,}\d{3,}$")
 
     def __init__(
@@ -48,7 +33,6 @@ class Student:
         student_id: str = None,
         subjects:   list = None,
     ):
-        #self.id       = student_id if student_id else self._generate_student_id()
         if student_id is None:
             self.id = self._generate_student_id()
         else:
@@ -56,20 +40,15 @@ class Student:
         self.name     = name
         self.email    = email
         self.password = password
-        #self.subjects = subjects if subjects is not None else []
         if subjects is None:
             self.subjects = []
         else:
             self.subjects = subjects
 
-    # -----ID generation------------------------------
-
     @staticmethod
     def _generate_student_id() -> str:
-        """Generate a random 6-digit zero-padded student ID."""
+        # 6-digit ID, zero padded.
         return str(random.randint(1, 999_999)).zfill(6)
-
-    #--pattern validation------------------------------------
 
     @classmethod
     def validate_email_pattern(cls, email: str) -> bool:
@@ -79,23 +58,15 @@ class Student:
     def validate_password_pattern(cls, password: str) -> bool:
         return bool(cls._PASSWORD_PATTERN.match(password))
 
-    #--credential checking-----------------
-
     def check_login_credential(self, email: str, password: str) -> bool:
-        """Verify supplied credentials. Email is case-insensitive, password exact."""
+        # Email comparison is case-insensitive, password has to be exact.
         return (
             self.email.lower() == email.lower()
             and self.password == password
         )
 
-    #---enrolment operations---------------
-
     def enrol(self) -> Subject | None:
-        """
-        Add a new auto-generated Subject. Returns the new Subject, or None
-        if MAX_SUBJECTS already reached.
-        The student's average_mark is automatically recalculated.
-        """
+        # Returns the new subject, or None if the student is already at the cap.
         if len(self.subjects) >= self.MAX_SUBJECTS:
             return None
         subject = Subject()
@@ -103,45 +74,33 @@ class Student:
         return subject
 
     def remove_subject(self, subject_id: str) -> bool:
-        """Remove subject by ID. Returns True if found and removed."""
         for i, subj in enumerate(self.subjects):
             if subj.id == subject_id:
                 self.subjects.pop(i)
                 return True
         return False
 
-    #--derived properties------------------------
-
     @property
     def average_mark(self) -> float:
-        """
-        Average mark of all enrolled subjects, recomputed every access.
-        Returns 0.0 if no subjects are enrolled.
-        """
+        # Recalculated every time so it always reflects the current subjects.
         if not self.subjects:
             return 0.0
         return sum(s.mark for s in self.subjects) / len(self.subjects)
 
     @property
     def overall_grade(self) -> str:
-        """Grade derived from the average mark via the UTS scale."""
         return Subject.calculate_grade(self.average_mark)
 
     @property
     def is_pass(self) -> bool:
-        """A student passes if the average mark is >= 50."""
         return self.average_mark >= 50
 
-    #--account management------------------------
-
     def change_password(self, new_password: str) -> bool:
-        """Update password if it satisfies the pattern."""
+        # Only update if the new password follows the rules.
         if not self.validate_password_pattern(new_password):
             return False
         self.password = new_password
         return True
-
-    #---serialisation----------------------
 
     def to_dict(self) -> dict:
         return {
@@ -163,14 +122,12 @@ class Student:
             subjects=subjects,
         )
 
-    #--display helpers (match sample I/O exactly) --------------------
-
     def __str__(self) -> str:
-        # Sample format:  John Smith :: 673358 --> Email: john.smith@university.com
+        # e.g.  John Smith :: 673358 --> Email: john.smith@university.com
         return f"{self.name} :: {self.id} --> Email: {self.email}"
 
     def short_repr(self) -> str:
-        # Used in admin grouping/partition output:
+        # Used by the admin views, e.g.
         #   John Smith :: 673358 --> GRADE:  C - MARK: 68.25
         grade_str = str(self.overall_grade).rjust(2)
         mark_str  = f"{self.average_mark:.2f}"
