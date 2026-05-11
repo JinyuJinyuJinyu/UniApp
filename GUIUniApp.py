@@ -1,3 +1,8 @@
+"""subject.py 
+
+Student Name: Jinyu Tian 
+Student ID: 25526361"""
+
 """
 GUIUniApp.py – Graphical University Enrolment Application
 =========================================================

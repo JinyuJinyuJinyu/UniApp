@@ -1,3 +1,8 @@
+"""subject.py 
+
+Student Name: Hang Wang
+Student ID: 14734281"""
+
 """
 subject.py – Subject model for CLIUniApp / GUIUniApp
 =====================================================

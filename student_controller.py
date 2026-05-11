@@ -1,3 +1,8 @@
+"""Student_controller.py 
+
+Student Name: Sai Som Seng
+Student ID: 25724218"""
+
 """
 student_controller.py – Controller for student-account operations
 ==================================================================
@@ -32,16 +37,11 @@ class StudentController:
         self._subject_controller = SubjectController(db)
 
     # ═════════════════════════════════════════════════════════════════════════
-    #  SERVICE METHODS — pure, reusable
+    #  Student Functions
     # ═════════════════════════════════════════════════════════════════════════
 
-    def register(self, name: str, email: str, password: str):
-        """
-        Register a new student.
-
-        Returns (Student, None) on success, or (None, error_code) on failure
-        where error_code is one of the ERR_* constants above.
-        """
+    #Register a new student
+    def register(self, name, email, password):
         if not Student.validate_email_pattern(email):
             return None, ERR_BAD_EMAIL_FORMAT
         if not Student.validate_password_pattern(password):
@@ -53,12 +53,8 @@ class StudentController:
         self._db.save_student(student)
         return student, None
 
-    def login(self, email: str, password: str):
-        """
-        Authenticate a student.
-
-        Returns (Student, None) on success, or (None, error_code) on failure.
-        """
+    #Authenticate a student login
+    def login(self, email, password):
         if not Student.validate_email_pattern(email):
             return None, ERR_BAD_EMAIL_FORMAT
         if not Student.validate_password_pattern(password):
@@ -71,11 +67,11 @@ class StudentController:
         return candidate, None
 
     # ═════════════════════════════════════════════════════════════════════════
-    #  CLI MENU
+    #  CLI Student MENU Screen
     # ═════════════════════════════════════════════════════════════════════════
 
-    def run_student_subsystem(self) -> None:
-        """Top-level Student subsystem menu."""
+    #Student subsystem menu 
+    def run_student_subsystem(self):
         while True:
             banner("STUDENT SUBSYSTEM")
             print("  [1] Register")
@@ -85,7 +81,8 @@ class StudentController:
 
             choice = prompt("Select option")
 
-            if   choice == "1": self._cli_register()
+            if   choice == "1": 
+                self._cli_register()
             elif choice == "2":
                 student = self._cli_login()
                 if student is not None:
@@ -95,13 +92,12 @@ class StudentController:
             else:
                 warn("Invalid option. Please enter 1–3.")
 
-    # ── CLI flow handlers ─────────────────────────────────────────────────────
+    # ═════════════════════════════════════════════════════════════════════════
+    #  CLI Functions for Student 
+    # ═════════════════════════════════════════════════════════════════════════
 
-    def _cli_register(self) -> None:
-        """
-        Spec-style flow:
-          Email → Password → validate format → check duplicate → ask Name → save.
-        """
+    #Flow Order > Email → Password → validate format → check duplicate → ask Name → save
+    def _cli_register(self):
         banner("STUDENT REGISTRATION")
 
         email = prompt("Email (e.g. john.smith@university.com)")
@@ -147,8 +143,8 @@ class StudentController:
         success(f"Enrolling Student {name}")
         success(f"Registration successful! Your student ID is: {student.id}")
 
+    #Login student
     def _cli_login(self):
-        """Returns the authenticated Student or None."""
         banner("STUDENT LOGIN")
 
         email    = prompt("Email")

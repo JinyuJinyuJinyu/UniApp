@@ -1,3 +1,8 @@
+"""database.py 
+
+Student Name: Hang Wang
+Student ID: 14734281"""
+
 """
 database.py – Data-access layer for CLIUniApp / GUIUniApp
 =========================================================

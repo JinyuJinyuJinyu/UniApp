@@ -1,3 +1,8 @@
+"""cli_view.py 
+
+Student Name: Sai Som Seng
+Student ID: 25724218"""
+
 """
 cli_view.py – CLI presentation helpers (View layer)
 ====================================================
@@ -9,36 +14,45 @@ business logic never touches print() / input() directly.
 import os
 
 
-# ── chrome ────────────────────────────────────────────────────────────────────
+# ═════════════════════════════════════════════════════════════════════════
+#  Terminal Display 
+# ═════════════════════════════════════════════════════════════════════════
 
-def clear() -> None:
-    """Clear the terminal screen."""
+#Clear the terminal screen
+def clear():
     os.system("cls" if os.name == "nt" else "clear")
 
-
-def banner(title: str) -> None:
-    """Print a section banner."""
+#Print a section banner
+def banner(title):
     width = 60
     print("\n" + "═" * width)
     print(f"  {title}")
     print("═" * width)
 
-
-def divider() -> None:
-    """Print a horizontal divider."""
+#Horizontal Divider
+def divider():
     print("─" * 60)
 
 
-# ── input ─────────────────────────────────────────────────────────────────────
+# ═════════════════════════════════════════════════════════════════════════
+#  Input
+# ═════════════════════════════════════════════════════════════════════════
 
-def prompt(text: str) -> str:
-    """Read a line of input with a 'text:' label."""
+def prompt(text):
     return input(f"  {text}: ").strip()
 
+# ═════════════════════════════════════════════════════════════════════════
+#  Message
+# ═════════════════════════════════════════════════════════════════════════
 
-# ── status lines ──────────────────────────────────────────────────────────────
+def info(msg): 
+    print(f"  ✔  {msg}")
 
-def info(msg: str)    -> None: print(f"  ✔  {msg}")
-def warn(msg: str)    -> None: print(f"  ⚠  {msg}")
-def error(msg: str)   -> None: print(f"  ✘  {msg}")
-def success(msg: str) -> None: print(f"  ✔  {msg}")
+def warn(msg): 
+    print(f"  ⚠  {msg}")
+
+def error(msg): 
+    print(f"  ✘  {msg}")
+
+def success(msg): 
+    print(f"  ✔  {msg}")
