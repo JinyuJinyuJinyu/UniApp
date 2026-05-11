@@ -4,7 +4,7 @@ Student Name: Sai Som Seng
 Student ID: 25724218"""
 
 """
-student_controller.py – Controller for student-account operations
+student_controller.py - Controller for student-account operations
 ==================================================================
 Coordinates registration, login, and the top-level Student subsystem menu.
 On successful login it hands control to SubjectController.run_subject_menu().
@@ -90,7 +90,7 @@ class StudentController:
             elif choice == "3":
                 return
             else:
-                warn("Invalid option. Please enter 1–3.")
+                warn("Invalid option. Please enter 1-3.")
 
     # ═════════════════════════════════════════════════════════════════════════
     #  CLI Functions for Student 

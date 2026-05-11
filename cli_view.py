@@ -4,23 +4,16 @@ Student Name: Sai Som Seng
 Student ID: 25724218"""
 
 """
-cli_view.py – CLI presentation helpers (View layer)
+cli_view.py - CLI presentation helpers (View layer)
 ====================================================
 All terminal output — banners, dividers, prompts, status lines — is
 funnelled through this module. Controllers import these helpers so the
 business logic never touches print() / input() directly.
 """
 
-import os
-
-
 # ═════════════════════════════════════════════════════════════════════════
-#  Terminal Display 
+#  Terminal Display
 # ═════════════════════════════════════════════════════════════════════════
-
-#Clear the terminal screen
-def clear():
-    os.system("cls" if os.name == "nt" else "clear")
 
 #Print a section banner
 def banner(title):

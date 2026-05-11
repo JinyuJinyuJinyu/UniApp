@@ -4,12 +4,12 @@ Student Name: Hang Wang
 Student ID: 14734281"""
 
 """
-subject.py – Subject model for CLIUniApp / GUIUniApp
+subject.py - Subject model for CLIUniApp / GUIUniApp
 =====================================================
 Each Subject is auto-generated at enrolment time.
 
-Spec compliance (Assessment 1 – Part 2):
-  - id    : random 3-digit number, 1–999
+Spec compliance (Assessment 1 - Part 2):
+  - id    : random 3-digit number, 1-999
   - mark  : random integer in [25, 100]
   - grade : derived from mark via the UTS scale
 

@@ -5,7 +5,7 @@ Student ID: 25724218"""
 
 
 """
-admin_controller.py – Controller for admin operations
+admin_controller.py - Controller for admin operations
 ======================================================
 Admins do not register; they authenticate against a fixed shared password.
 
@@ -24,7 +24,7 @@ from database import Database
 from cli_view import (banner, divider, prompt, info, warn, error, success)
 
 
-# Fixed admin password – admins do not register
+# Fixed admin password - admins do not register
 _ADMIN_PASSWORD = "admin"
 
 
@@ -38,7 +38,8 @@ class AdminController:
     # ═════════════════════════════════════════════════════════════════════════
 
     #Verify the supplied password against the fixed admin credential. Admin uses only a password (no email).
-    def check_login_credential(self, password):
+    @staticmethod
+    def check_login_credential(password):
         if password == _ADMIN_PASSWORD:
             return True
         else:
@@ -176,7 +177,7 @@ class AdminController:
                 info("Admin logged out.")
                 return
             else:
-                warn("Invalid option. Please enter 1–6.")
+                warn("Invalid option. Please enter 1-6.")
 
     # ═════════════════════════════════════════════════════════════════════════
     #  CLI functions

@@ -4,14 +4,14 @@ Student Name: Jinyu Tian
 Student ID: 25526361"""
 
 """
-GUIUniApp.py – Graphical University Enrolment Application
+GUIUniApp.py - Graphical University Enrolment Application
 =========================================================
 Per the assignment marking scheme, GUIUniApp provides FOUR distinct windows:
 
-  1. Login Window       – main window; reads students.data via StudentController
-  2. Enrolment Window   – action panel: enrol new subjects (max 4)
-  3. Subject Window     – list of enrolled subjects with marks & grades
-  4. Exception Window   – modal dialog for format errors and overflow
+  1. Login Window       - main window; reads students.data via StudentController
+  2. Enrolment Window   - action panel: enrol new subjects (max 4)
+  3. Subject Window     - list of enrolled subjects with marks & grades
+  4. Exception Window   - modal dialog for format errors and overflow
 
 The GUI is a pure View layer — all data operations go through the
 StudentController and SubjectController service methods. tkinter widgets
@@ -133,7 +133,7 @@ class LoginWindow:
         self._build_ui()
 
     def _build_ui(self):
-        self.root.title("GUIUniApp – Student Login")
+        self.root.title("GUIUniApp - Student Login")
         self.root.configure(bg=C_BG)
         self.root.resizable(False, False)
 
@@ -251,7 +251,7 @@ class EnrolmentWindow:
         self.root.protocol("WM_DELETE_WINDOW", self._logout)
 
     def _build_ui(self):
-        self.root.title(f"GUIUniApp – Enrolment  |  {self.student.name}")
+        self.root.title(f"GUIUniApp - Enrolment  |  {self.student.name}")
         self.root.configure(bg=C_BG)
         self.root.resizable(False, False)
 
@@ -293,7 +293,7 @@ class EnrolmentWindow:
 
         tk.Label(body,
                  text=("Each enrolment auto-generates a Subject ID, a random "
-                       "mark (25–100), and the corresponding grade.\n"
+                       "mark (25-100), and the corresponding grade.\n"
                        "You may enrol in up to 4 subjects per semester."),
                  font=FONT_BODY, fg=C_TEXT, bg=C_BG,
                  wraplength=520, justify="left").pack(anchor="w", pady=(0, 20))
@@ -347,7 +347,7 @@ class EnrolmentWindow:
                 f"Students are allowed to enrol in {Student.MAX_SUBJECTS} subjects only.",
                 kind="warning",
             )
-            self.status_var.set("⚠  Enrolment blocked – maximum subjects reached.")
+            self.status_var.set("⚠  Enrolment blocked - maximum subjects reached.")
             return
 
         self._refresh()
@@ -406,7 +406,7 @@ class SubjectWindow:
         self._populate_tree()
 
     def _build_ui(self):
-        self.root.title(f"GUIUniApp – Subjects  |  {self.student.name}")
+        self.root.title(f"GUIUniApp - Subjects  |  {self.student.name}")
         self.root.configure(bg=C_BG)
         self.root.resizable(False, False)
 

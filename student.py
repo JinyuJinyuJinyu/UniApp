@@ -4,10 +4,10 @@ Student Name: Hang Wang
 Student ID: 14734281"""
 
 """
-student.py – Student model for CLIUniApp / GUIUniApp
+student.py - Student model for CLIUniApp / GUIUniApp
 =====================================================
-Spec compliance (Assessment 1 – Part 2):
-  - id       : 6-digit random ID, 000001–999999
+Spec compliance (Assessment 1 - Part 2):
+  - id       : 6-digit random ID, 000001-999999
   - name     : full name
   - email    : firstname.lastname@university.com
   - password : starts with uppercase, ≥5 letters AFTER the uppercase, ≥3 digits
